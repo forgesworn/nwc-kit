@@ -37,6 +37,7 @@
     "check:no-node-imports": "! grep -rEn \"from ['\\\"]node:|require\\(['\\\"]node:\" src --include='*.ts'",
     "check:browser-bundle": "esbuild dist/index.js --bundle --platform=browser --outfile=/dev/null --log-level=error && esbuild dist/extensions/05.js --bundle --platform=browser --outfile=/dev/null --log-level=error",
     "check:pack": "npm pack --dry-run",
+    "check": "npm run typecheck && npm run check:no-node-imports && npm run test:coverage && npm run build && npm run check:browser-bundle && npm run check:pack && npm audit",
     "prepublishOnly": "npm run typecheck && npm run check:no-node-imports && npm run test:coverage && npm run build && npm run check:browser-bundle && npm run check:pack"
   },
   "repository": {
