@@ -7,34 +7,38 @@ The reusable workflow itself is pinned to an audited commit, not a moving tag.
 
 ## First publish
 
-npm requires the scoped package to exist before trusted publishing can be
-configured. Do not bootstrap from a developer machine because local publication
-cannot carry npm provenance. After the public GitHub repository exists and
-`main` is green:
+A trusted publisher cannot be configured for a package that does not yet exist:
+npm's package settings page is the only place to set one, and there is no
+settings page until something has been published. See
+[npm/cli#8544](https://github.com/npm/cli/issues/8544). The first version
+therefore goes up by hand, exactly as anvil documents, and every release after
+it goes through OIDC.
 
-1. Create a short-lived granular npm token with only the publication access
-   required for the ForgeSworn scope.
-2. Create the protected GitHub environment `npm-bootstrap` and add that token as
-   its `NPM_TOKEN` secret.
-3. Run `bootstrap-release.yml`. It repeats the package gates on a GitHub-hosted
-   runner, builds on a second independent runner, requires byte-identical
-   tarballs, scans the exact pack set, and publishes the already-verified build
-   A tarball with provenance. The token exists only in the protected publish
-   job.
-4. Verify the registry tarball, provenance, public repository and exact version.
-5. Tag that verified commit as `v0.1.0` and push the tag.
+No npm token is involved at any point. Use an interactive session for the one
+manual publish and OIDC for everything else.
 
-Do not create a GitHub Release for `v0.1.0`; that would ask the release workflow
-to publish the same version again.
+With the public repository in place and `main` green:
 
-The bootstrap reads the version from `package.json` rather than hard-coding it,
-so it refuses to run twice against the same version without needing an edit.
+1. `npm login` and confirm with `npm whoami`.
+2. `npm run check` locally. This is the same sequence CI runs.
+3. `npm publish --access public --no-provenance`.
 
-Then configure the npm trusted publisher for repository `forgesworn/nwc-kit`,
-workflow `release.yml`, environment `npm-publish`, with `npm publish` allowed.
-Verify an OIDC patch release before disallowing tokens. Then revoke the bootstrap
-token, remove `bootstrap-release.yml`, require 2FA and disallow token-based
-publication.
+   `--no-provenance` is required. `publishConfig.provenance` is `true` and must
+   stay `true`, because anvil refuses to publish without it, but provenance can
+   only be attested from a supported CI runner. A workstation publish that tries
+   to attest fails.
+4. Confirm the published tarball, then tag that commit as `v0.1.0` and push the
+   tag. Do not create a GitHub Release for it; that would ask the release
+   workflow to publish the same version a second time.
+5. On npmjs.com, configure the trusted publisher for the now-existing package:
+   repository `forgesworn/nwc-kit`, workflow `release.yml`, environment
+   `npm-publish`. Create that environment in GitHub if you want a branch or
+   reviewer gate on it.
+6. Verify one OIDC patch release end to end, then require 2FA and disallow
+   token-based publishing for the package.
+
+`0.1.0` is the only version that will lack a provenance attestation. That is the
+cost of npm's bootstrap gap, and it is at its cheapest on a first `0.x` release.
 
 ## The site
 
