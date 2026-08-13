@@ -11,6 +11,12 @@ export interface ListTransactionsParams {
   type?: 'incoming' | 'outgoing'
 }
 
+// Extension 05: "clients SHOULD fetch small page sizes, such as a maximum of 20
+// transactions per page." The limit is always sent, because wallets apply their
+// own default when it is absent and that default can exceed the page cap this
+// client is willing to accept back.
+const MAX_PAGE_SIZE = 20
+
 function optionalInteger(value: number | undefined, name: string, minimum = 0): void {
   if (value !== undefined && (!Number.isSafeInteger(value) || value < minimum)) {
     throw new NwcError('INVALID_REQUEST', `${name} must be an integer of at least ${minimum}`)
@@ -30,8 +36,8 @@ export class NwcTransactionHistoryClient extends NwcClient {
     optionalInteger(params.until, 'until')
     optionalInteger(params.offset, 'offset')
     optionalInteger(params.limit, 'limit', 1)
-    if (params.limit !== undefined && params.limit > 20) {
-      throw new NwcError('INVALID_REQUEST', 'limit must not exceed 20')
+    if (params.limit !== undefined && params.limit > MAX_PAGE_SIZE) {
+      throw new NwcError('INVALID_REQUEST', `limit must not exceed ${MAX_PAGE_SIZE}`)
     }
     if (params.type !== undefined && params.type !== 'incoming' && params.type !== 'outgoing') {
       throw new NwcError('INVALID_REQUEST', 'type must be incoming or outgoing')
@@ -45,10 +51,11 @@ export class NwcTransactionHistoryClient extends NwcClient {
 
     if (!this.capabilities) await this.connect()
     this.requireExtension('05')
+    const limit = params.limit ?? MAX_PAGE_SIZE
     const request = {
       ...(params.from !== undefined ? { from: params.from } : {}),
       ...(params.until !== undefined ? { until: params.until } : {}),
-      ...(params.limit !== undefined ? { limit: params.limit } : {}),
+      limit,
       ...(params.offset !== undefined ? { offset: params.offset } : {}),
       ...(params.unpaid !== undefined ? { unpaid: params.unpaid } : {}),
       ...(params.type !== undefined ? { type: params.type } : {}),
@@ -58,7 +65,7 @@ export class NwcTransactionHistoryClient extends NwcClient {
       throw new NwcError('INVALID_RESPONSE', 'list_transactions result has no transactions array')
     }
     const transactions = (result as { transactions: unknown[] }).transactions
-    if (transactions.length > 20 || (params.limit !== undefined && transactions.length > params.limit)) {
+    if (transactions.length > limit) {
       throw new NwcError('INVALID_RESPONSE', 'list_transactions returned too many transactions')
     }
     return {

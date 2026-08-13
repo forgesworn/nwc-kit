@@ -204,6 +204,31 @@ describe('NwcClient core operations', () => {
     client.close()
   })
 
+  it('accepts a successful response that omits the error field', async () => {
+    const paid = new FakeTransport()
+    paid.responseFactory = () => ({ result: { preimage: 'ab'.repeat(32), fees_paid: 12 }, omitError: true })
+    const payer = new NwcClient(VALID_URI, { transport: paid })
+    await expect(payer.payInvoice({ invoice: 'lnbc1' })).resolves.toEqual({
+      preimage: 'ab'.repeat(32),
+      fees_paid: 12,
+    })
+    payer.close()
+
+    const balance = new FakeTransport()
+    balance.responseFactory = () => ({ result: { balance: 42_000 }, omitError: true })
+    const reader = new NwcClient(VALID_URI, { transport: balance })
+    await expect(reader.getBalance()).resolves.toEqual({ balance: 42_000 })
+    reader.close()
+  })
+
+  it('rejects a response that omits both the error field and the result', async () => {
+    const transport = new FakeTransport()
+    transport.responseFactory = () => ({ result: undefined, omitError: true })
+    const client = new NwcClient(VALID_URI, { transport })
+    await expect(client.getBalance()).rejects.toMatchObject({ code: 'INVALID_RESPONSE' })
+    client.close()
+  })
+
   it('rejects mismatched result types and malformed results', async () => {
     const mismatch = new FakeTransport()
     mismatch.responseFactory = () => ({ resultType: 'get_balance', result: { preimage: 'ab'.repeat(32) }, error: null })

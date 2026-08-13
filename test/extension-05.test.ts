@@ -12,6 +12,22 @@ describe('NWC extension 05 transaction history', () => {
     client.close()
   })
 
+  it('always sends a page limit so the wallet cannot apply a larger default', async () => {
+    const transport = new FakeTransport()
+    let requested: Record<string, unknown> | undefined
+    transport.responseFactory = (_request, _method, params) => {
+      requested = params
+      return { result: { transactions: [] }, error: null }
+    }
+    const client = new NwcTransactionHistoryClient(VALID_URI, { transport })
+    await client.listTransactions()
+    expect(requested).toMatchObject({ limit: 20 })
+
+    await client.listTransactions({ limit: 5 })
+    expect(requested).toMatchObject({ limit: 5 })
+    client.close()
+  })
+
   it('fails closed when extension 05 is unavailable', async () => {
     const transport = new FakeTransport()
     transport.infoExtensions = []

@@ -19,7 +19,14 @@ export type WalletResponseFactory = (
   request: NwcEvent,
   method: string,
   params: Record<string, unknown>,
-) => { result?: unknown; error?: { code: string; message: string } | null; resultType?: string }
+) => {
+  result?: unknown
+  error?: { code: string; message: string } | null
+  resultType?: string
+  // Alby Hub marshals the response error as `json:"error,omitempty"` over a nil
+  // pointer, so a successful response carries no error key at all.
+  omitError?: boolean
+}
 
 export class FakeTransport implements NwcTransport {
   readonly requests: NwcEvent[] = []
@@ -70,7 +77,7 @@ export class FakeTransport implements NwcTransport {
       const response = configured ?? this.defaultResponse(payload.method)
       const validEvent = this.createResponseEvent(request, {
         result_type: ('resultType' in response ? response.resultType : undefined) ?? payload.method,
-        error: response.error ?? null,
+        ...(response.omitError ? {} : { error: response.error ?? null }),
         result: response.result,
       })
       this.beforeValidResponse?.(request, (event) => this.#handler?.(event))

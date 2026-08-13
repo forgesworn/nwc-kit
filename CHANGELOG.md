@@ -7,7 +7,9 @@
 - NIP-47 client with NIP-44 v2 encryption and authenticated wallet events.
 - Strict connection URI parsing, bounded relay inputs and secret-safe inspection.
 - Signed capability discovery and core pay, invoice, lookup and balance methods.
-- Optional NIP-47 extension 05 transaction history behind a separate export.
+- Optional NIP-47 extension 05 transaction history behind a separate export,
+  always requesting an explicit page of at most 20 transactions so a wallet
+  cannot apply a larger default of its own.
 - Timeout, abort, relay-acceptance and deterministic cleanup controls.
 - Browser-safe ESM output for Node 22+, browsers, Deno and Bun.
 

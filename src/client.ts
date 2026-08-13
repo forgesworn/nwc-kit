@@ -545,7 +545,11 @@ export class NwcClient {
       throw new NwcError('INVALID_RESPONSE', 'NWC response result_type does not match the request')
     }
 
-    if (payload.error !== null) {
+    // NIP-47 says the error field "must be null" on success, but the spec's own
+    // worked example omits it and wallets follow the example: Alby Hub marshals
+    // the field as `json:"error,omitempty"` over a nil pointer, so a successful
+    // response carries no error key at all. Absent and null both mean success.
+    if (payload.error !== null && payload.error !== undefined) {
       if (!isRecord(payload.error)) {
         throw new NwcError('INVALID_RESPONSE', 'NWC response has an invalid error field')
       }
