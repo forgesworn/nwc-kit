@@ -50,6 +50,56 @@ describe('NwcClient capability discovery', () => {
     await expect(new NwcClient(VALID_URI, { transport: legacy }).connect()).rejects.toMatchObject({ code: 'UNSUPPORTED_ENCRYPTION' })
   })
 
+  it('retries capability discovery when a relay answers with nothing', async () => {
+    const flaky = new FakeTransport()
+    flaky.infoEmptyResponses = 2
+    const client = new NwcClient(VALID_URI, { transport: flaky })
+    await expect(client.connect()).resolves.toMatchObject({ encryptions: ['nip44_v2'] })
+    expect(flaky.infoQueries).toBe(3)
+    client.close()
+  })
+
+  it('retries capability discovery when the transport throws', async () => {
+    const flaky = new FakeTransport()
+    flaky.infoThrows = 1
+    const client = new NwcClient(VALID_URI, { transport: flaky })
+    await expect(client.connect()).resolves.toMatchObject({ encryptions: ['nip44_v2'] })
+    expect(flaky.infoQueries).toBe(2)
+    client.close()
+  })
+
+  it('gives up after a bounded number of discovery attempts', async () => {
+    const dead = new FakeTransport()
+    dead.infoEmptyResponses = 99
+    await expect(new NwcClient(VALID_URI, { transport: dead }).connect())
+      .rejects.toMatchObject({ code: 'INFO_UNAVAILABLE' })
+    expect(dead.infoQueries).toBe(3)
+  })
+
+  it('gives the first discovery attempt the whole budget and retries inside it', async () => {
+    const flaky = new FakeTransport()
+    flaky.infoEmptyResponses = 99
+    const started = Date.now()
+    await expect(new NwcClient(VALID_URI, { transport: flaky, infoTimeoutMs: 9000 }).connect())
+      .rejects.toMatchObject({ code: 'INFO_UNAVAILABLE' })
+    // Slicing the budget would cut off a slow relay, so the first attempt gets
+    // all of it and later attempts get only what is left.
+    expect(flaky.infoTimeouts[0]).toBe(9000)
+    expect(flaky.infoTimeouts.slice(1).every((ms) => ms <= 9000)).toBe(true)
+    expect(Date.now() - started).toBeLessThan(9000)
+  })
+
+  it('does not retry a relay that consumed its whole budget', async () => {
+    // A relay that went quiet is unresponsive rather than empty. Asking again
+    // buys nothing and adds load to something already struggling.
+    const slow = new FakeTransport()
+    slow.infoEmptyResponses = 99
+    slow.infoBudgetFraction = 0.95
+    await expect(new NwcClient(VALID_URI, { transport: slow, infoTimeoutMs: 200 }).connect())
+      .rejects.toMatchObject({ code: 'INFO_UNAVAILABLE' })
+    expect(slow.infoQueries).toBe(1)
+  })
+
   it('rejects empty or duplicate info tags', async () => {
     const empty = new FakeTransport()
     empty.infoMethods = []
