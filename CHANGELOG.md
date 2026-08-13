@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.2 (2026-08-13)
+
+### Fixed
+
+- Capability discovery now retries when a relay answers with nothing. Measured
+  against a live wallet on a single relay, `connect()` succeeded on the first
+  query 4 times in 8; with retries, 7 in 8. The first call a consumer makes was
+  failing up to half the time.
+
+  Discovery is a read, so repeating it cannot cost anything. That is the
+  opposite of a payment, and the distinction is why retrying is safe here and
+  never safe for a request. Only a fast empty answer is retried: a relay that
+  consumed its whole timeout is unresponsive rather than empty, and is left
+  alone. Retries run inside the existing `infoTimeoutMs`, so the worst case a
+  caller waits is unchanged.
+
+  Multiple relays remain the real answer to a relay that goes quiet, and that is
+  the connection string's job rather than this client's.
+
 ## 0.1.1 (2026-08-13)
 
 ### Changed

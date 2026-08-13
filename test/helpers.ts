@@ -39,14 +39,35 @@ export class FakeTransport implements NwcTransport {
   infoEncryptions = ['nip44_v2']
   infoExtensions = ['05']
   infoEvents?: NwcEvent[]
+  /** Return nothing for this many discovery queries before answering. */
+  infoEmptyResponses = 0
+  /** Throw from this many discovery queries before answering. */
+  infoThrows = 0
+  /** Consume this fraction of the offered timeout before answering. */
+  infoBudgetFraction = 0
+  infoQueries = 0
+  readonly infoTimeouts: number[] = []
   responseFactory?: WalletResponseFactory
   beforeValidResponse?: (request: NwcEvent, deliver: (event: NwcEvent) => void) => void
   beforeSubscriptionReturn?: (filter: NwcFilter, deliver: (event: NwcEvent) => void) => void
 
   #handler: ((event: NwcEvent) => void) | undefined
 
-  async query(relays: readonly string[], filter: NwcFilter): Promise<NwcEvent[]> {
+  async query(relays: readonly string[], filter: NwcFilter, timeoutMs?: number): Promise<NwcEvent[]> {
     this.queries.push({ relays, filter })
+    this.infoQueries++
+    if (timeoutMs !== undefined) this.infoTimeouts.push(timeoutMs)
+    if (this.infoThrows > 0) {
+      this.infoThrows--
+      throw new Error('relay unavailable')
+    }
+    if (this.infoEmptyResponses > 0) {
+      this.infoEmptyResponses--
+      if (this.infoBudgetFraction > 0 && timeoutMs !== undefined) {
+        await new Promise((resolve) => setTimeout(resolve, Math.ceil(timeoutMs * this.infoBudgetFraction)))
+      }
+      return []
+    }
     if (this.infoEvents) return this.infoEvents
     return [this.createInfoEvent()]
   }

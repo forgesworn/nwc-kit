@@ -34,6 +34,10 @@ const MAX_INVOICE_CHARS = 20_000
 const MAX_METADATA_CHARS = 4096
 const MAX_TIMEOUT_MS = 300_000
 const MAX_INFO_EVENTS = 32
+const MAX_INFO_ATTEMPTS = 3
+const MIN_INFO_ATTEMPT_MS = 1500
+/** Treat a query that used this much of its budget as a timeout, not an answer. */
+const SLOW_RELAY_FRACTION = 0.9
 const MAX_EVENT_TAGS = 64
 const MAX_TAG_ITEMS = 16
 const MAX_TAG_ITEM_CHARS = 4096
@@ -239,36 +243,7 @@ export class NwcClient {
 
   async connect(): Promise<NwcCapabilities> {
     this.#assertOpen()
-    let events: unknown
-    try {
-      events = await this.#transport.query(
-        this.relays,
-        { kinds: [NWC_INFO_KIND], authors: [this.walletPubkey], limit: 5 },
-        this.#infoTimeoutMs,
-      )
-    } catch {
-      this.#assertOpen()
-      throw new NwcError('INFO_UNAVAILABLE', 'NWC wallet capability discovery failed')
-    }
-    this.#assertOpen()
-
-    if (!Array.isArray(events) || events.length > MAX_INFO_EVENTS) {
-      throw new NwcError('INFO_UNAVAILABLE', 'NWC wallet capability discovery returned invalid events')
-    }
-
-    const event = events
-      .filter((candidate) =>
-        isNwcEventShape(candidate) &&
-        candidate.kind === NWC_INFO_KIND &&
-        candidate.pubkey === this.walletPubkey &&
-        candidate.content.length <= MAX_INFO_CONTENT_CHARS &&
-        verifyExternalEvent(candidate),
-      )
-      .sort((a, b) => b.created_at - a.created_at || b.id.localeCompare(a.id))[0]
-
-    if (!event) {
-      throw new NwcError('INFO_UNAVAILABLE', 'No signed NWC wallet info event was available')
-    }
+    const event = await this.#discoverInfoEvent()
 
     const encryptions = boundedWords(singleTag(event, 'encryption'), 'NWC encryptions')
     if (!encryptions.includes('nip44_v2')) {
@@ -288,6 +263,81 @@ export class NwcClient {
       createdAt: event.created_at,
     })
     return this.#copyCapabilities(this.#capabilities)
+  }
+
+  /**
+   * Capability discovery is a read, so repeating it cannot cost anything. That
+   * is the opposite of a payment, and the distinction is why retrying here is
+   * safe when retrying `execute` never is.
+   *
+   * It earns its place: against a single relay, a query for the info event
+   * comes back empty often enough that one attempt makes `connect()`
+   * unreliable, and it usually fails as a fast empty answer rather than as a
+   * timeout. Only that fast case is retried. A relay that spent its whole
+   * budget is unresponsive rather than empty, and asking it again buys nothing
+   * while adding load to something already struggling.
+   *
+   * Retries run inside the existing `infoTimeoutMs` budget rather than
+   * extending it, so the worst case a caller waits is unchanged.
+   */
+  async #discoverInfoEvent(): Promise<NwcEvent> {
+    const deadline = Date.now() + this.#infoTimeoutMs
+    let transportFailed = false
+
+    for (let attempt = 0; attempt < MAX_INFO_ATTEMPTS; attempt++) {
+      const remaining = deadline - Date.now()
+      if (attempt > 0 && remaining <= MIN_INFO_ATTEMPT_MS) break
+
+      // Each attempt gets the whole remaining budget rather than a fixed
+      // slice. Slicing would cut off a relay that is merely slow, turning a
+      // query that would have completed into a timeout: the opposite of the
+      // problem being solved.
+      const budget = attempt === 0 ? this.#infoTimeoutMs : remaining
+      const started = Date.now()
+      let events: unknown
+      try {
+        events = await this.#transport.query(
+          this.relays,
+          { kinds: [NWC_INFO_KIND], authors: [this.walletPubkey], limit: 5 },
+          budget,
+        )
+      } catch {
+        this.#assertOpen()
+        transportFailed = true
+        continue
+      }
+      this.#assertOpen()
+      // A relay that consumed its whole budget is unresponsive, not merely
+      // empty. Asking again buys nothing and adds load to something already
+      // struggling, so only a quick empty answer is worth retrying.
+      const spentWholeBudget = Date.now() - started >= budget * SLOW_RELAY_FRACTION
+
+      // A relay flooding the response is a definitive rejection, not something
+      // to retry into.
+      if (!Array.isArray(events) || events.length > MAX_INFO_EVENTS) {
+        throw new NwcError('INFO_UNAVAILABLE', 'NWC wallet capability discovery returned invalid events')
+      }
+
+      const event = events
+        .filter((candidate) =>
+          isNwcEventShape(candidate) &&
+          candidate.kind === NWC_INFO_KIND &&
+          candidate.pubkey === this.walletPubkey &&
+          candidate.content.length <= MAX_INFO_CONTENT_CHARS &&
+          verifyExternalEvent(candidate),
+        )
+        .sort((a, b) => b.created_at - a.created_at || b.id.localeCompare(a.id))[0]
+
+      if (event) return event
+      if (spentWholeBudget) break
+    }
+
+    throw new NwcError(
+      'INFO_UNAVAILABLE',
+      transportFailed
+        ? 'NWC wallet capability discovery failed'
+        : 'No signed NWC wallet info event was available',
+    )
   }
 
   get capabilities(): NwcCapabilities | undefined {
