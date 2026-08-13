@@ -2,6 +2,7 @@
 
 > Small, security-focused Nostr Wallet Connect client for TypeScript. Implements the NIP-47 core with NIP-44 v2 encryption and authenticated wallet responses, so an application can spend through a constrained connection to an existing Lightning wallet. Not a wallet, custody layer, policy engine or invoice verifier.
 
+Live demo and documentation: https://forgesworn.github.io/nwc-kit/
 GitHub: https://github.com/forgesworn/nwc-kit
 npm: https://www.npmjs.com/package/@forgesworn/nwc-kit
 

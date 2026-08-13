@@ -25,11 +25,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run typecheck:site
       - name: No Node imports in browser-safe source
         run: npm run check:no-node-imports
       - run: npm run test:coverage
       - run: npm run build
       - run: npm run check:browser-bundle
+      - name: Demo site still builds
+        run: npm run build:site
+      - name: Committed site output is up to date
+        run: git diff --exit-code -- docs
       - run: npm run check:pack
       - name: No known dependency vulnerabilities
         run: npm audit

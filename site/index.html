@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nwc-kit — Nostr Wallet Connect, without the trust</title>
+<meta name="description" content="Small, security-focused Nostr Wallet Connect client for TypeScript. NIP-47 core, NIP-44 v2 only, authenticated wallet responses, untrusted relays.">
+<meta name="theme-color" content="#0a0e17">
+<!-- frame-ancestors is deliberately absent: it is ignored in a meta CSP and only
+     logs a console error. Set it as a response header at the host if needed. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src wss: https:; base-uri 'none'; form-action 'none'">
+<meta property="og:title" content="nwc-kit">
+<meta property="og:description" content="Nostr Wallet Connect for TypeScript. The relay is untrusted, the wallet is authenticated, and a timeout is never proof of non-payment.">
+<meta property="og:type" content="website">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <a class="wordmark" href="#top">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="currentColor"/></svg>
+      <span>nwc-kit</span>
+    </a>
+    <nav class="masthead-nav">
+      <a href="#demo">Demo</a>
+      <a href="#api">API</a>
+      <a href="#security">Security</a>
+      <a href="https://github.com/forgesworn/nwc-kit">GitHub</a>
+      <a href="https://www.npmjs.com/package/@forgesworn/nwc-kit">npm</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="wrap">
+    <p class="eyebrow">NIP-47 · NIP-44 v2 · ESM</p>
+    <h1>Spend from someone else's wallet<br>without trusting the wire.</h1>
+    <p class="lede">
+      <strong>nwc-kit</strong> is a small Nostr Wallet Connect client for TypeScript.
+      It lets an application use a constrained connection to an existing Lightning
+      wallet. It is not a wallet, a payment rail, a custody layer, a policy engine
+      or an invoice verifier, and it is careful to stay that way.
+    </p>
+    <div class="cta">
+      <code class="install">npm install @forgesworn/nwc-kit</code>
+      <a class="button" href="#demo">Watch it reject a forged wallet</a>
+    </div>
+    <ul class="badges">
+      <li>One runtime dependency</li>
+      <li>31 KB packed</li>
+      <li>Node 22+, browsers, Deno, Bun</li>
+      <li>MIT</li>
+    </ul>
+  </div>
+</section>
+
+<section class="strip">
+  <div class="wrap grid-3">
+    <article>
+      <h3>The relay is untrusted</h3>
+      <p>
+        Subscription filters are performance hints, not authentication. Every
+        response is shape-checked, signature-verified and matched to the live
+        request before anything is decrypted. A valid wallet event that does not
+        reference the active request is treated as a possible replay and ignored
+        rather than allowed to fail the request.
+      </p>
+    </article>
+    <article>
+      <h3>NIP-44 v2 or nothing</h3>
+      <p>
+        Legacy NIP-04 is refused, not merely deprecated. The client requires the
+        wallet to advertise <code>nip44_v2</code> in a signed capability event
+        before it will send anything at all, and it checks the wallet author,
+        request reference, client recipient and result method before trusting a
+        result.
+      </p>
+    </article>
+    <article>
+      <h3>A timeout is not a refund</h3>
+      <p>
+        Once publication begins, timeout, abort, close and publish failure are
+        ambiguous outcomes. A relay can store an event without returning a usable
+        acknowledgement. The library says so, the types say so, and the docs say
+        so, because a blind retry can pay twice.
+      </p>
+    </article>
+  </div>
+</section>
+
+<section id="demo" class="demo">
+  <div class="wrap">
+    <h2>Live demo</h2>
+    <p class="section-lede">
+      This page runs the real library. In simulated mode a wallet lives in the
+      page, signs its own Nostr events and encrypts to you with real NIP-44 v2,
+      so the client cannot tell it from a remote one. Change how that wallet
+      behaves and watch the client accept or reject it.
+    </p>
+
+    <div class="tablist" role="tablist">
+      <button role="tab" data-mode="simulated" aria-selected="true">Simulated wallet</button>
+      <button role="tab" data-mode="real" aria-selected="false">Your wallet</button>
+    </div>
+
+    <div class="demo-grid">
+      <div class="demo-controls">
+
+        <div id="panel-simulated">
+          <div class="wallet-card">
+            <span class="wallet-label">Demo wallet balance</span>
+            <span id="wallet-balance" class="wallet-balance">0 sats</span>
+          </div>
+
+          <label class="field">
+            <span>Wallet behaviour</span>
+            <select id="scenario">
+              <option value="honest" data-note="A well-behaved wallet: signed responses, correct request reference, correct recipient.">Honest wallet</option>
+              <option value="omits-error" data-note="Alby Hub marshals the response error as `json:&quot;error,omitempty&quot;` over a nil pointer, so a successful response has no error key at all. The NIP text says the field must be null on success; its own worked example omits it. Both shapes must be accepted, and this one is the shape most real wallets send.">Omits the error field (real Alby Hub shape)</option>
+              <option value="forged-signature" data-note="The response carries a random signature. verifyEvent fails, so the event never reaches decryption. It is discarded rather than failing the request, so expect this one to end in a timeout after 8 seconds.">Hostile: forged signature</option>
+              <option value="impostor" data-note="A different Nostr key signs a perfectly valid response. The author does not match the wallet in the connection string, so the event is discarded and the request runs on to its timeout.">Hostile: impostor signs the response</option>
+              <option value="replay" data-note="A genuinely signed wallet event that references a different request. A relay can replay these at any time, so it is ignored rather than allowed to terminate the live request, which then times out.">Hostile: relay replays an old response</option>
+              <option value="wrong-method" data-note="The wallet answers pay_invoice with result_type get_info. Method confusion is caught before the result is read.">Hostile: result_type confusion</option>
+              <option value="wrong-recipient" data-note="The p tag addresses somebody else. The response is not for this client.">Hostile: addressed to another client</option>
+              <option value="declines" data-note="A normal, well-formed refusal. This is a WALLET_ERROR, not a protocol failure, and the wallet's message is stripped of control characters before it reaches you.">Wallet declines the request</option>
+            </select>
+          </label>
+
+          <div class="button-row">
+            <button id="sim-connect" class="button primary">Connect</button>
+            <button id="sim-balance" class="button">get_balance</button>
+            <button id="sim-info" class="button">get_info</button>
+            <button id="sim-pay" class="button">pay_invoice</button>
+            <button id="sim-invoice" class="button">make_invoice</button>
+            <button id="sim-history" class="button">list_transactions</button>
+            <button id="sim-clear" class="button ghost">Clear tape</button>
+          </div>
+          <p class="hint">
+            Nothing leaves your browser in this mode. There is no relay and no
+            network request.
+          </p>
+        </div>
+
+        <div id="panel-real" hidden>
+          <div class="warning">
+            <strong>An NWC connection string is a spending capability.</strong>
+            Anyone holding it can drain the wallet up to its budget. This page
+            keeps it in memory only: it is never written to storage, never put in
+            the URL, and never sent anywhere except the relays named inside the
+            string itself. It is still a web page. Use a throwaway connection
+            with a small budget and a short expiry, and revoke it when you are
+            done.
+          </div>
+
+          <label class="field">
+            <span>Connection string</span>
+            <input id="real-uri" type="password" autocomplete="off" spellcheck="false"
+                   placeholder="nostr+walletconnect://…">
+          </label>
+
+          <div class="button-row">
+            <button id="real-connect" class="button primary">Connect</button>
+            <button id="real-balance" class="button">get_balance</button>
+            <button id="real-info" class="button">get_info</button>
+            <button id="real-history" class="button">list_transactions</button>
+            <button id="real-disconnect" class="button ghost">Disconnect</button>
+          </div>
+
+          <label class="field">
+            <span>BOLT-11 invoice to pay (spends real satoshis)</span>
+            <input id="real-invoice" type="text" autocomplete="off" spellcheck="false" placeholder="lnbc…">
+          </label>
+          <div class="button-row">
+            <button id="real-pay" class="button danger">pay_invoice</button>
+          </div>
+          <p class="hint">
+            nwc-kit does not decode invoices or verify preimages, and neither does
+            this page. In production, verify the invoice before paying and verify
+            the returned preimage against the payment hash afterwards.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="demo-tape">
+        <div class="tape-header">
+          <span>Protocol tape</span>
+          <span id="demo-status" data-kind="idle">Ready.</span>
+        </div>
+        <div id="tape" class="tape">
+          <p id="tape-empty" class="tape-placeholder">
+            Press Connect. Every event below is really signed, really encrypted
+            and really verified by the library you would install.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="api" class="api">
+  <div class="wrap">
+    <h2>The whole API</h2>
+    <p class="section-lede">
+      Two exports. The draft extension is kept behind the second one so the core
+      cannot come to depend on it.
+    </p>
+
+    <div class="grid-2">
+      <div>
+        <h3>Paying, carefully</h3>
+        <pre class="code"><code>import { NwcClient } from '@forgesworn/nwc-kit'
+import { tryDecodeBolt11, verifyPreimage } from 'farrier-kit'
+
+const client = new NwcClient(connectionUri)
+
+try {
+  const caps = await client.connect()
+  if (!caps.methods.includes('pay_invoice')) {
+    throw new Error('This connection cannot pay')
+  }
+
+  const decoded = tryDecodeBolt11(invoice)
+  if (!decoded || decoded.amountMsats === null) {
+    throw new Error('Refusing an amountless invoice')
+  }
+
+  const result = await client.payInvoice({ invoice })
+
+  if (!verifyPreimage(result.preimage, decoded.paymentHashHex)) {
+    throw new Error('Response does not settle this invoice')
+  }
+} finally {
+  client.close()
+}</code></pre>
+      </div>
+      <div>
+        <h3>Surface</h3>
+        <table class="api-table">
+          <tbody>
+            <tr><td><code>connect()</code></td><td>Signed capability discovery</td></tr>
+            <tr><td><code>payInvoice()</code></td><td>Returns a validated preimage</td></tr>
+            <tr><td><code>makeInvoice()</code></td><td>Amount in milli-satoshis</td></tr>
+            <tr><td><code>lookupInvoice()</code></td><td>By payment hash or invoice</td></tr>
+            <tr><td><code>getBalance()</code></td><td>Milli-satoshis</td></tr>
+            <tr><td><code>getInfo()</code></td><td>Wallet metadata</td></tr>
+            <tr><td><code>close()</code></td><td>Cancels work, zeroises keys</td></tr>
+            <tr><td><code>inspectNwcConnection()</code></td><td>Reads a URI without exposing the secret</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          All amount, balance and fee fields are integers in
+          <strong>milli-satoshis</strong>. Convert sats explicitly at the
+          application boundary and reject ambiguous amounts before making a
+          request.
+        </p>
+        <p class="note">
+          Transaction history is draft extension 05 and lives at
+          <code>@forgesworn/nwc-kit/extensions/05</code>. It always sends an
+          explicit page limit, capped at 20, because a wallet asked for no
+          particular page size applies a larger default of its own.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="security" class="security">
+  <div class="wrap">
+    <h2>What it refuses to do</h2>
+    <div class="grid-2">
+      <div>
+        <h3>Not in scope, deliberately</h3>
+        <ul class="ticks">
+          <li>Wallet or node implementation</li>
+          <li>Custody, balances, subwallet management</li>
+          <li>BOLT-11, LNURL, L402, Cashu, WebLN, fiat</li>
+          <li>Amount policy and user approval</li>
+          <li>Settlement verification</li>
+          <li>Legacy NIP-04 interoperability</li>
+        </ul>
+      </div>
+      <div>
+        <h3>What you still owe your users</h3>
+        <p>
+          The wallet service is authoritative for whether it attempted a payment,
+          but its response is not settlement proof. Verify the invoice before you
+          pay it and verify the returned preimage against the invoice payment
+          hash afterwards. <a href="https://github.com/forgesworn/farrier-kit">farrier-kit</a>
+          does both.
+        </p>
+        <p>
+          Wallet-enforced permissions and budgets are defence in depth, not a
+          replacement for your own approval and spend policy. Passing tests are
+          not evidence that money settled.
+        </p>
+        <p class="doc-links">
+          <a href="https://github.com/forgesworn/nwc-kit/blob/main/THREAT-MODEL.md">Threat model</a>
+          <a href="https://github.com/forgesworn/nwc-kit/blob/main/SECURITY.md">Security policy</a>
+          <a href="https://github.com/forgesworn/nwc-kit/blob/main/CONTRIBUTING.md">Contributing</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <p>
+      Built by <a href="https://github.com/forgesworn">ForgeSworn</a>. MIT licensed.
+      Part of a family of small freedom-tech kits.
+    </p>
+    <p class="support">
+      <a href="https://github.com/sponsors/TheCryptoDonkey">Sponsor</a>
+      <a href="https://ko-fi.com/brays">Ko-fi</a>
+      <a href="https://geyser.fund/project/forgesworn">Geyser</a>
+    </p>
+  </div>
+</footer>
+
+<script type="module" src="./demo.js"></script>
+</body>
+</html>
