@@ -96,6 +96,24 @@ That client always sends an explicit page `limit`, defaulting to 20 and capped
 at 20. Extension 05 advises clients to page by at most 20, and a wallet asked
 for no particular page size will apply a larger default of its own.
 
+## Wallet compatibility
+
+This client refuses to send anything until it has read a **signed kind 13194
+info event** from the wallet, advertising `nip44_v2` in its `encryption` tag.
+
+NIP-47 makes that event a SHOULD rather than a MUST, so this is stricter than
+the specification requires, and deliberately. A wallet that publishes no info
+event advertises no encryption mode, and the specification's default for that
+case is legacy NIP-04, which this library does not implement. Guessing that an
+undiscoverable wallet happens to support NIP-44 v2 is not a guess worth making
+with a spending capability.
+
+The practical consequence: a minimal or homegrown NIP-47 bridge that skips the
+info event will fail here with `INFO_UNAVAILABLE`, even where it works with more
+permissive clients. That is the wallet to fix, not this client. Publishing a
+replaceable kind 13194 event whose content lists the supported methods, tagged
+`["encryption", "nip44_v2"]`, is all that is required.
+
 ## Runtime contract
 
 The default transport uses the runtime's global `WebSocket`. Node 22+, current

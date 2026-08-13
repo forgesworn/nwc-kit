@@ -82,3 +82,25 @@ test suite's `FakeTransport` is only as honest as the shapes it is told to send.
 **Bounds are deliberate.** Every length, count and timeout limit in `client.ts`
 exists to stop a hostile wallet or relay exhausting the caller. Raise one only
 with a reason.
+
+**The info-event requirement is stricter than the spec on purpose.** NIP-47 makes
+the kind 13194 info event a SHOULD. This client treats it as mandatory, because a
+wallet advertising no encryption mode defaults to NIP-04 under the spec, and this
+client does not implement NIP-04. Wallets that skip the info event fail with
+`INFO_UNAVAILABLE`. Do not relax this to "assume NIP-44 when the info event is
+missing" — that guesses about the encryption of a spending capability.
+
+## Testing against a real wallet
+
+`scripts/real-wallet-smoke.mjs` points the built bundle at a live wallet service.
+It reads the connection string from an owner-only file, never argv or the
+environment, and runs read-only methods unless `--pay` is passed:
+
+```bash
+npm run build
+node scripts/real-wallet-smoke.mjs /path/to/nwc-uri.txt
+```
+
+Use it before any release that touches connection parsing, capability discovery
+or response handling. The fake wallet in `test/` and this client were written by
+the same hand, so agreement between them is weaker evidence than it looks.

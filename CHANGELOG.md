@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.1 (2026-08-13)
+
+### Changed
+
+- Prepare the first release through npm trusted publishing with provenance.
+  The public API and runtime behaviour are unchanged from `0.1.0`.
+
+### Documented
+
+- Wallet compatibility: this client requires a signed kind 13194 info event
+  advertising `nip44_v2` before it will send anything. NIP-47 makes that event a
+  SHOULD, so this is stricter than the specification, and deliberately: a wallet
+  advertising no encryption mode defaults to NIP-04 under the specification, and
+  NIP-04 is not implemented here. A wallet that skips the info event fails with
+  `INFO_UNAVAILABLE`.
+
 ## 0.1.0 (2026-08-13)
 
 First release. The API is not yet frozen: this client has been verified against
