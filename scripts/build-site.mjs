@@ -33,8 +33,9 @@ for (const file of ['index.html', 'styles.css', 'favicon.svg']) {
   await cp(resolve(site, file), resolve(out, file))
 }
 
-// Pages would otherwise run the output through Jekyll, which strips files and
-// directories beginning with an underscore.
+// The site is served as plain static files. This only matters if the output is
+// ever handed to GitHub Pages as a fallback, which would otherwise run it
+// through Jekyll and strip anything beginning with an underscore.
 await writeFile(resolve(out, '.nojekyll'), '')
 
 const bytes = Object.values(result.metafile.outputs)[0].bytes

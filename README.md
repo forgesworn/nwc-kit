@@ -2,7 +2,7 @@
 
 Small, security-focused Nostr Wallet Connect client for TypeScript.
 
-**[Live demo and documentation](https://forgesworn.github.io/nwc-kit/)** — the
+**[Live demo and documentation](https://nwc-kit.forgesworn.dev)** — the
 demo runs this library in the browser against a wallet that lives in the page,
 so you can make that wallet forge a signature, replay an old response or confuse
 a result type, and watch the client refuse it.

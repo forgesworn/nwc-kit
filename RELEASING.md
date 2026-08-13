@@ -33,6 +33,15 @@ Verify an OIDC patch release before disallowing tokens. Then revoke the bootstra
 token, remove `bootstrap-release.yml`, require 2FA and disallow token-based
 publication.
 
+## The site
+
+`npm run build:site` compiles `site/` into `docs/`, which is committed and
+verified by CI. The published site at <https://nwc-kit.forgesworn.dev> is those
+files served statically from `/opt/nwc-kit-site` behind Caddy, which terminates
+TLS and sets the security headers, including the `frame-ancestors` directive
+that a meta-tag policy cannot carry. Rebuild, commit, then copy `docs/` to the
+host; there is no deployment hook, on purpose.
+
 ## Later releases
 
 1. Bump `package.json` and `package-lock.json`.

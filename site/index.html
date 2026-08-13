@@ -6,8 +6,9 @@
 <title>nwc-kit — Nostr Wallet Connect, without the trust</title>
 <meta name="description" content="Small, security-focused Nostr Wallet Connect client for TypeScript. NIP-47 core, NIP-44 v2 only, authenticated wallet responses, untrusted relays.">
 <meta name="theme-color" content="#0a0e17">
-<!-- frame-ancestors is deliberately absent: it is ignored in a meta CSP and only
-     logs a console error. Set it as a response header at the host if needed. -->
+<!-- frame-ancestors is deliberately absent here: it is ignored in a meta CSP and
+     only logs a console error. The host sets the full policy, frame-ancestors
+     included, as a response header. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src wss: https:; base-uri 'none'; form-action 'none'">
 <meta property="og:title" content="nwc-kit">
 <meta property="og:description" content="Nostr Wallet Connect for TypeScript. The relay is untrusted, the wallet is authenticated, and a timeout is never proof of non-payment.">

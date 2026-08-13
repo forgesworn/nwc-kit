@@ -47,7 +47,7 @@
     "type": "git",
     "url": "git+https://github.com/forgesworn/nwc-kit.git"
   },
-  "homepage": "https://forgesworn.github.io/nwc-kit/",
+  "homepage": "https://nwc-kit.forgesworn.dev",
   "bugs": {
     "url": "https://github.com/forgesworn/nwc-kit/issues"
   },
