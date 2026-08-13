@@ -226,6 +226,18 @@ code {
   border-radius: 100px;
   padding: 4px 12px;
 }
+.badges .badge-warn {
+  color: var(--warn);
+  border-color: rgba(251, 191, 36, 0.4);
+  background: var(--warn-bg);
+}
+
+.maturity {
+  margin-top: 16px;
+  font-size: 0.87rem;
+  color: var(--text-muted);
+  max-width: 62ch;
+}
 
 /* ── buttons ──────────────────────────────────────────────── */
 

@@ -1,6 +1,11 @@
 # Changelog
 
-## 1.0.0 (2026-08-13)
+## 0.1.0 (2026-08-13)
+
+First release. The API is not yet frozen: this client has been verified against
+the NIP-44 protocol vectors and an adversarial fake wallet, but not yet against
+a real wallet service in the field. Expect the 0.x line to move while that
+happens. See the wire-compatibility notes in `AGENTS.md`.
 
 ### Added
 

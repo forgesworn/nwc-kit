@@ -22,10 +22,13 @@ cannot carry npm provenance. After the public GitHub repository exists and
    A tarball with provenance. The token exists only in the protected publish
    job.
 4. Verify the registry tarball, provenance, public repository and exact version.
-5. Tag that verified commit as `v1.0.0` and push the tag.
+5. Tag that verified commit as `v0.1.0` and push the tag.
 
-Do not create a GitHub Release for `v1.0.0`; that would ask the release workflow
+Do not create a GitHub Release for `v0.1.0`; that would ask the release workflow
 to publish the same version again.
+
+The bootstrap reads the version from `package.json` rather than hard-coding it,
+so it refuses to run twice against the same version without needing an edit.
 
 Then configure the npm trusted publisher for repository `forgesworn/nwc-kit`,
 workflow `release.yml`, environment `npm-publish`, with `npm publish` allowed.

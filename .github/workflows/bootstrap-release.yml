@@ -132,13 +132,16 @@ jobs:
             echo "::error::independent tarballs differ: A=$SHA_A B=$SHA_B"
             exit 1
           }
-          if npm view '@forgesworn/nwc-kit@1.0.0' version > /dev/null 2>registry-error.txt; then
-            echo '::error::@forgesworn/nwc-kit@1.0.0 already exists; bootstrap is one-shot'
+          name="$(node -p 'require("./package.json").name')"
+          version="$(node -p 'require("./package.json").version')"
+          echo "bootstrapping $name@$version"
+          if npm view "$name@$version" version > /dev/null 2>registry-error.txt; then
+            echo "::error::$name@$version already exists; bootstrap is one-shot"
             exit 1
           fi
           grep -Eq 'E404|is not in this registry|code E404' registry-error.txt || {
             cat registry-error.txt >&2
-            echo '::error::cannot prove that 1.0.0 is absent from npm'
+            echo "::error::cannot prove that $version is absent from npm"
             exit 1
           }
       - name: Publish the verified first release with provenance
