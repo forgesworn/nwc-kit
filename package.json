@@ -15,7 +15,8 @@
     "CHANGELOG.md",
     "README.md",
     "SECURITY.md",
-    "THREAT-MODEL.md"
+    "THREAT-MODEL.md",
+    "llms.txt"
   ],
   "exports": {
     ".": {

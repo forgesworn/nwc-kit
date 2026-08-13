@@ -83,6 +83,10 @@ Transaction history is optional NWC extension 05 and is isolated behind:
 import { NwcTransactionHistoryClient } from '@forgesworn/nwc-kit/extensions/05'
 ```
 
+That client always sends an explicit page `limit`, defaulting to 20 and capped
+at 20. Extension 05 advises clients to page by at most 20, and a wallet asked
+for no particular page size will apply a larger default of its own.
+
 ## Runtime contract
 
 The default transport uses the runtime's global `WebSocket`. Node 22+, current

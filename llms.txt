@@ -1,0 +1,94 @@
+# nwc-kit
+
+> Small, security-focused Nostr Wallet Connect client for TypeScript. Implements the NIP-47 core with NIP-44 v2 encryption and authenticated wallet responses, so an application can spend through a constrained connection to an existing Lightning wallet. Not a wallet, custody layer, policy engine or invoice verifier.
+
+GitHub: https://github.com/forgesworn/nwc-kit
+npm: https://www.npmjs.com/package/@forgesworn/nwc-kit
+
+ESM-only. Node 22+, browsers, Deno and Bun. No `node:` imports. One runtime dependency: `nostr-tools`. Two subpath exports: `@forgesworn/nwc-kit` (main), `@forgesworn/nwc-kit/extensions/05` (transaction history).
+
+**All NIP-47 amount, balance and fee fields are integers in milli-satoshis.** Convert sats explicitly at the application boundary.
+
+## Install
+
+npm install @forgesworn/nwc-kit
+
+## Subpath Exports
+
+### @forgesworn/nwc-kit (main entry)
+
+Classes:
+- `new NwcClient(connectionUri, options?)` — options: `{ transport?, requestTimeoutMs?, infoTimeoutMs?, now? }`. Default request timeout 60000ms, info timeout 10000ms; both must be 100–300000ms
+- `new NostrRelayTransport(pool?)` — default transport over `nostr-tools` `SimplePool`
+- `NwcError` — `{ code: NwcErrorCode, message: string, walletCode?: string }`
+
+NwcClient methods:
+- `connect() → Promise<NwcCapabilities>` — fetches the signed kind-13194 info event, requires `nip44_v2`
+- `payInvoice({ invoice, amount?, metadata? }, options?) → Promise<PayInvoiceResult>`
+- `makeInvoice({ amount, description?, description_hash?, expiry?, metadata? }, options?) → Promise<NwcTransaction>`
+- `lookupInvoice({ payment_hash? | invoice? }, options?) → Promise<NwcTransaction>` — exactly one of the two
+- `getBalance(options?) → Promise<{ balance: number }>`
+- `getInfo(options?) → Promise<GetInfoResult>`
+- `close() → void` — cancels pending requests, zeroises owned key material
+- `capabilities` — getter, `NwcCapabilities | undefined`
+- `walletPubkey`, `clientPubkey`, `relays` — readonly
+
+Request options: `{ signal?: AbortSignal, timeoutMs?: number }`
+
+Functions:
+- `inspectNwcConnection(uri) → NwcConnectionInfo` — `{ walletPubkey, relays, lud16? }`, never returns the secret
+
+Constants:
+- `NWC_INFO_KIND` — 13194
+- `NWC_REQUEST_KIND` — 23194
+- `NWC_RESPONSE_KIND` — 23195
+
+Error codes (`NwcErrorCode`): INVALID_CONNECTION, CLIENT_CLOSED, INFO_UNAVAILABLE, UNSUPPORTED_ENCRYPTION, UNSUPPORTED_METHOD, UNSUPPORTED_EXTENSION, INVALID_REQUEST, PUBLISH_FAILED, RESPONSE_TIMEOUT, REQUEST_ABORTED, INVALID_RESPONSE, WALLET_ERROR
+
+Types: GetBalanceResult, GetInfoResult, LookupInvoiceParams, MakeInvoiceParams, NwcCapabilities, NwcClientOptions, NwcConnectionInfo, NwcCoreMethod, NwcErrorCode, NwcEvent, NwcFilter, NwcPublishResult, NwcRequestOptions, NwcSubscription, NwcTransaction, NwcTransport, PayInvoiceParams, PayInvoiceResult
+
+### @forgesworn/nwc-kit/extensions/05
+
+Draft NWC extension 05, transaction history. Isolated so the core export cannot depend on a draft.
+
+- `new NwcTransactionHistoryClient(connectionUri, options?)` — extends `NwcClient`
+- `listTransactions({ from?, until?, limit?, offset?, unpaid?, type? }, options?) → Promise<{ transactions: NwcTransaction[] }>`
+
+An explicit `limit` is always sent, defaulting to 20 and capped at 20, because the extension advises clients to page by at most 20 and wallets otherwise apply a larger default of their own.
+
+## Usage
+
+```ts
+import { NwcClient } from '@forgesworn/nwc-kit'
+import { tryDecodeBolt11, verifyPreimage } from 'farrier-kit'
+
+const client = new NwcClient(connectionUri)
+try {
+  const capabilities = await client.connect()
+  if (!capabilities.methods.includes('pay_invoice')) throw new Error('cannot pay')
+
+  const decoded = tryDecodeBolt11(invoice)
+  if (!decoded || decoded.amountMsats === null) throw new Error('bad invoice')
+
+  const result = await client.payInvoice({ invoice })
+  if (!verifyPreimage(result.preimage, decoded.paymentHashHex)) {
+    throw new Error('wallet response does not settle this invoice')
+  }
+} finally {
+  client.close()
+}
+```
+
+## Security Model
+
+- The relay is untrusted. Subscription filters are performance hints, not authentication. Every response is shape-checked, signature-verified and matched to the live request before decryption.
+- Wallet author, request reference, client recipient and result method are all checked before a result is trusted.
+- A valid wallet event that does not reference the active request is treated as a possible relay replay and ignored.
+- NIP-44 v2 is required. Legacy NIP-04 is refused.
+- The NWC connection URI is a spending capability. The library never logs or returns it. `close()` zeroises the library-owned secret and conversation-key byte arrays; JavaScript strings cannot be erased, so the caller still owns the URI string.
+- Once publication begins, timeout, abort, close and publish failure are **ambiguous payment outcomes**, never proof of non-payment. Reconcile the invoice before retrying; a blind retry can pay twice.
+- Passing tests are not evidence that money settled. Verify the invoice before paying and verify the returned preimage against the invoice payment hash afterwards — `farrier-kit` does both.
+
+## Not In Scope
+
+Wallet or node implementation, custody, balances or subwallet management, forward secrecy beyond NIP-44, BOLT-11 / LNURL / L402 / Cashu / WebLN / fiat functionality, legacy NIP-04 interoperability, amount policy, user approval and settlement verification.
