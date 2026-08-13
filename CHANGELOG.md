@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 (2026-08-13)
+
+### Changed
+
+- Prepare the first release through npm trusted publishing with provenance.
+  The public API and runtime behaviour are unchanged from `0.1.0`.
+
 ## 0.1.0 (2026-08-13)
 
 First release. The API is not yet frozen: this client has been verified against
