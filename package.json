@@ -1,0 +1,78 @@
+{
+  "name": "@forgesworn/nwc-kit",
+  "version": "1.0.0",
+  "description": "Small, security-focused Nostr Wallet Connect client for TypeScript",
+  "author": "ForgeSworn",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "CHANGELOG.md",
+    "README.md",
+    "SECURITY.md",
+    "THREAT-MODEL.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./extensions/05": {
+      "types": "./dist/extensions/05.d.ts",
+      "import": "./dist/extensions/05.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:protocol": "vitest run test/nip44-vector.test.ts",
+    "test:coverage": "vitest run --coverage",
+    "check:no-node-imports": "! grep -rEn \"from ['\\\"]node:|require\\(['\\\"]node:\" src --include='*.ts'",
+    "check:browser-bundle": "esbuild dist/index.js --bundle --platform=browser --outfile=/dev/null --log-level=error && esbuild dist/extensions/05.js --bundle --platform=browser --outfile=/dev/null --log-level=error",
+    "check:pack": "npm pack --dry-run",
+    "prepublishOnly": "npm run typecheck && npm run check:no-node-imports && npm run test:coverage && npm run build && npm run check:browser-bundle && npm run check:pack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/forgesworn/nwc-kit.git"
+  },
+  "homepage": "https://github.com/forgesworn/nwc-kit#readme",
+  "bugs": {
+    "url": "https://github.com/forgesworn/nwc-kit/issues"
+  },
+  "keywords": [
+    "bitcoin",
+    "lightning",
+    "nostr",
+    "nwc",
+    "nip47",
+    "nip44"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "nostr-tools": "2.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "esbuild": "^0.28.0",
+    "tsup": "^8.5.0",
+    "typescript": "^6.0.0",
+    "vitest": "^4.1.0"
+  },
+  "overrides": {
+    "tsup": {
+      "esbuild": "^0.28.2"
+    }
+  }
+}
