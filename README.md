@@ -41,11 +41,25 @@ All NIP-47 amount, balance and fee fields are integers in **milli-satoshis**.
 Convert sats explicitly at the application boundary and reject unsafe or
 ambiguous amounts before making a wallet request.
 
-Once publication begins, a timeout, abort, lost response or publication error is
-an **unknown payment outcome**. A relay can store an event without returning a
-usable acknowledgement. None of those local errors proves that the wallet
-declined or failed to pay. Reconcile the original invoice before retrying; a
-blind retry can pay twice.
+Once a `payInvoice` request has been published, **every** failure is an unknown
+payment outcome. That includes `RESPONSE_TIMEOUT`, `REQUEST_ABORTED`,
+`PUBLISH_FAILED`, `CLIENT_CLOSED` and, importantly, `INVALID_RESPONSE`.
+
+`INVALID_RESPONSE` is the one that surprises people. It means the wallet replied
+claiming a result, and the result was unusable: a preimage that is not 32 bytes
+of hex, a mismatched `result_type`, an undecryptable payload. A wallet that
+answers with a broken success is not telling you the payment failed. It is
+telling you nothing you can rely on. This is not hypothetical: a real bridge
+observed during testing returned an empty preimage as a *successful* result when
+its node could not route the payment.
+
+Only failures raised **before** publication are safe to treat as definitely not
+paid: `INVALID_CONNECTION`, `INVALID_REQUEST`, `UNSUPPORTED_METHOD`,
+`UNSUPPORTED_ENCRYPTION` and `INFO_UNAVAILABLE`. Those never reach the wallet.
+
+A relay can also store an event without returning a usable acknowledgement, so
+even `PUBLISH_FAILED` does not prove the wallet never saw the request. Reconcile
+the original invoice before retrying; a blind retry can pay twice.
 
 ## Usage
 

@@ -89,7 +89,9 @@ try {
 - A valid wallet event that does not reference the active request is treated as a possible relay replay and ignored.
 - NIP-44 v2 is required. Legacy NIP-04 is refused.
 - The NWC connection URI is a spending capability. The library never logs or returns it. `close()` zeroises the library-owned secret and conversation-key byte arrays; JavaScript strings cannot be erased, so the caller still owns the URI string.
-- Once publication begins, timeout, abort, close and publish failure are **ambiguous payment outcomes**, never proof of non-payment. Reconcile the invoice before retrying; a blind retry can pay twice.
+- Once a payment request is published, **every** failure is an ambiguous outcome, never proof of non-payment: `RESPONSE_TIMEOUT`, `REQUEST_ABORTED`, `PUBLISH_FAILED`, `CLIENT_CLOSED` and `INVALID_RESPONSE`. Reconcile the invoice before retrying; a blind retry can pay twice.
+- `INVALID_RESPONSE` on a payment looks like a refusal and is not one. It means the wallet answered claiming a result that could not be trusted (bad preimage, wrong `result_type`, undecryptable payload). A real bridge returned an empty preimage as a *successful* result when its node could not route the payment. Rejecting that response is a statement about the evidence, not about the money.
+- Only failures raised **before** publication prove nothing was attempted: `INVALID_CONNECTION`, `INVALID_REQUEST`, `UNSUPPORTED_METHOD`, `UNSUPPORTED_ENCRYPTION`, `INFO_UNAVAILABLE`.
 - Passing tests are not evidence that money settled. Verify the invoice before paying and verify the returned preimage against the invoice payment hash afterwards — `farrier-kit` does both.
 
 ## Not In Scope

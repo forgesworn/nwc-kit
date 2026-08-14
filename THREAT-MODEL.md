@@ -34,8 +34,18 @@ budgets are mandatory defence in depth, not a replacement for application policy
 Publication is irreversible from this client's point of view. A relay can store
 an event without returning a usable acknowledgement, and timeout, abort or local
 close can happen after the wallet received the request. Once publication begins,
-the application must treat any local failure as ambiguous, reconcile the
-original invoice and avoid blind payment retries.
+the application must treat any failure as ambiguous, reconcile the original
+invoice and avoid blind payment retries.
+
+A rejected response is ambiguous in the same way, and this is the case most
+likely to be misread. A wallet that answers with an unusable result has not told
+the application that the payment failed; it has told the application nothing it
+can act on. A bridge observed during testing returned an empty preimage as a
+successful result whenever its node could not route the payment, because the
+node signalled failure with an HTTP 200 body rather than an error status. This
+client refuses such a response instead of reporting a settlement it cannot
+substantiate, but refusal is a statement about the evidence, not about the
+money. Only failures raised before publication prove that nothing was attempted.
 
 The connection URI enters as an immutable JavaScript string, so the library
 cannot erase the caller's copy. It converts the secret into owned byte arrays

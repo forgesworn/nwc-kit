@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.1.3 (2026-08-14)
+
+### Documented
+
+- `INVALID_RESPONSE` on a published payment is an **ambiguous outcome**, not a
+  refusal. The previous wording listed timeout, abort, close and publication
+  failure as the ambiguous cases, which invited the reading that a rejected
+  response meant the money had definitely stayed put. It does not.
+
+  A wallet that answers with an unusable result has not said the payment failed;
+  it has said nothing that can be acted on. Found against a real wallet: a bridge
+  returned an empty preimage as a *successful* result whenever its node could not
+  route the payment, because the node signalled failure with an HTTP 200 body
+  rather than an error status. This client rejects such a response instead of
+  reporting a settlement it cannot substantiate, but rejection is a statement
+  about the evidence, not about the money.
+
+  `README.md`, `SECURITY.md`, `THREAT-MODEL.md` and `llms.txt` now enumerate
+  which error codes are ambiguous after publication, and which are raised before
+  publication and therefore prove that nothing was attempted.
+
+No runtime or API change.
+
 ## 0.1.2 (2026-08-13)
 
 ### Fixed
