@@ -8,8 +8,10 @@ so you can make that wallet forge a signature, replay an old response or confuse
 a result type, and watch the client refuse it.
 
 This is an early `0.x` release. The client is verified against the NIP-44
-protocol vectors and an adversarial fake wallet, but not yet against a real
-wallet service in the field, so the API may still move. Pin an exact version.
+protocol vectors, an adversarial fake wallet, and a controlled mainnet
+acceptance through Rizful in the 402-mcp payment path. That proves one wallet
+and provider path, not every real-world implementation, so the API may still
+move. Pin an exact version.
 
 It implements the current [draft NIP-47 core](https://github.com/nostr-protocol/nips/blob/master/47.md)
 and keeps [draft extension 05](https://github.com/nostr-wallet-connect/nwc/blob/main/05.md)
