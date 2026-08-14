@@ -50,7 +50,7 @@ export class NwcTransactionHistoryClient extends NwcClient {
     }
 
     if (!this.capabilities) await this.connect()
-    this.requireExtension('05')
+    this.requireExtension('05', 'list_transactions')
     const limit = params.limit ?? MAX_PAGE_SIZE
     const request = {
       ...(params.from !== undefined ? { from: params.from } : {}),

@@ -586,10 +586,27 @@ export class NwcClient {
     })
   }
 
-  protected requireExtension(identifier: string): void {
-    if (!this.#capabilities?.extensions.includes(identifier)) {
-      throw new NwcError('UNSUPPORTED_EXTENSION', `NWC wallet does not advertise extension ${identifier}`)
-    }
+  /**
+   * A wallet may declare an extension either by naming it in the `extensions`
+   * tag or by naming the method it provides in the capability list.
+   *
+   * The tag is the tidier signal and the specification's intended one, but no
+   * surveyed wallet service publishes it: not Alby Hub, not Coinos, not
+   * `@getalby/sdk`, which is what Zeus speaks through. The extensions mechanism
+   * arrived after `list_transactions` was already deployed, and nobody went
+   * back. Requiring the tag therefore refuses every wallet that actually
+   * implements the method, on the grounds that it did not say so twice.
+   *
+   * Accepting the method name is not a guess. It is the wallet's own explicit
+   * capability declaration, and `execute` independently refuses any method
+   * missing from that list. What guards the response is `validateTransaction`,
+   * which is unaffected either way.
+   */
+  protected requireExtension(identifier: string, providedByMethod?: string): void {
+    const capabilities = this.#capabilities
+    if (capabilities?.extensions.includes(identifier)) return
+    if (providedByMethod && capabilities?.methods.includes(providedByMethod)) return
+    throw new NwcError('UNSUPPORTED_EXTENSION', `NWC wallet does not advertise extension ${identifier}`)
   }
 
   #handleResponse(response: unknown, requestId: string, method: string): unknown {
