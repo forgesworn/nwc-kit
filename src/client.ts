@@ -35,6 +35,8 @@ const MAX_METADATA_CHARS = 4096
 const MAX_TIMEOUT_MS = 300_000
 const MAX_INFO_EVENTS = 32
 const MAX_INFO_ATTEMPTS = 3
+/** 2100-01-01. Beyond this a "Unix seconds" field is something else, usually milliseconds. */
+const MAX_TIMESTAMP_SECONDS = 4_102_444_800
 const MIN_INFO_ATTEMPT_MS = 1500
 /** Treat a query that used this much of its budget as a timeout, not an answer. */
 const SLOW_RELAY_FRACTION = 0.9
@@ -665,8 +667,21 @@ export class NwcClient {
         throw new NwcError('INVALID_RESPONSE', `${method} returned invalid metadata`)
       }
     }
-    for (const field of ['amount', 'fees_paid', 'created_at', 'expires_at', 'settled_at'] as const) {
+    for (const field of ['amount', 'fees_paid'] as const) {
       if (!isAbsent(value[field])) positiveSafeInteger(value[field], field, true, 'INVALID_RESPONSE')
+    }
+    for (const field of ['created_at', 'expires_at', 'settled_at'] as const) {
+      if (isAbsent(value[field])) continue
+      const seconds = positiveSafeInteger(value[field], field, true, 'INVALID_RESPONSE')
+      // NIP-47 timestamps are Unix seconds. Wallets have shipped milliseconds
+      // here by accident, which is a silent corruption rather than a loud one:
+      // the value is a perfectly good positive integer, so it passes every
+      // other check and lands in application code as a date roughly forty
+      // thousand years out. Coinos hit this and it broke a client's date
+      // parser. Anything past the year 2100 is not a Unix-seconds timestamp.
+      if (seconds > MAX_TIMESTAMP_SECONDS) {
+        throw new NwcError('INVALID_RESPONSE', `${method} returned ${field} outside the Unix-seconds range, possibly in milliseconds`)
+      }
     }
     return {
       ...(isAbsent(value.type) ? {} : { type: value.type as 'incoming' | 'outgoing' }),

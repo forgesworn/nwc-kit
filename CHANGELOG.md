@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.1.5 (2026-08-14)
+
+### Fixed
+
+- Transaction timestamps outside the Unix-seconds range are now refused.
+  `created_at`, `expires_at` and `settled_at` in milliseconds are perfectly good
+  positive integers, so they passed every existing check and reached application
+  code as dates roughly forty thousand years out. Coinos shipped this by
+  accident and it broke a client's date parser. Anything past the year 2100 is
+  rejected. Amounts and fees are unaffected, being milli-satoshis rather than
+  timestamps.
+
+### Documented
+
+- A survey of what shipping wallets put on the wire, taken from their service
+  code rather than from the specification. Alby Hub, Coinos and Zeus work.
+  LNbits `nwcprovider` is **incompatible**: it is NIP-04 only and publishes no
+  `encryption` tag, so discovery fails before anything is sent. Zeus reaches the
+  wire through `@getalby/sdk`, which publishes no `extensions` tag, so extension
+  05 is unavailable there even though `list_transactions` is implemented.
+
+- Zeus returns a successful `pay_invoice` result with an empty preimage on
+  purpose, to mean an HTLC is in flight but not yet settled. This client refuses
+  that response rather than reporting a settlement it cannot substantiate, and
+  the refusal is an ambiguous outcome rather than a failure: an application that
+  reads it as "the payment did not happen" will be wrong precisely when the
+  payment is still on its way.
+
 ## 0.1.4 (2026-08-14)
 
 ### Fixed

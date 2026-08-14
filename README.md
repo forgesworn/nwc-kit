@@ -128,6 +128,24 @@ permissive clients. That is the wallet to fix, not this client. Publishing a
 replaceable kind 13194 event whose content lists the supported methods, tagged
 `["encryption", "nip44_v2"]`, is all that is required.
 
+### Known wallet behaviour
+
+Surveyed by reading what each wallet's service code actually puts on the wire,
+rather than what the specification says it should.
+
+| Wallet | Status | Note |
+| --- | --- | --- |
+| Alby Hub | Works | Unset fields arrive as `""` and `null`; handled since 0.1.4 |
+| Coinos | Works | Advertises `nip44_v2`, omits `error` on success |
+| Zeus | Works | Via `@getalby/sdk`. No `extensions` tag, so extension 05 is unavailable |
+| LNbits `nwcprovider` | **Incompatible** | NIP-04 only, and publishes no `encryption` tag |
+
+`payInvoice` refuses an empty preimage, and that refusal is an ambiguous outcome
+rather than a failure. Zeus returns exactly that shape deliberately, to mean an
+HTLC is in flight but not yet settled, so an application reading it as "the
+payment did not happen" will be wrong precisely when the payment is still on its
+way. Reconcile the invoice.
+
 ## Runtime contract
 
 The default transport uses the runtime's global `WebSocket`. Node 22+, current
