@@ -39,12 +39,12 @@
 <section class="hero">
   <div class="wrap">
     <p class="eyebrow">NIP-47 · NIP-44 v2 · ESM</p>
-    <h1>Spend from someone else's wallet<br>without trusting the wire.</h1>
+    <h1>Give your app a wallet connection,<br>not the wallet itself.</h1>
     <p class="lede">
-      <strong>nwc-kit</strong> is a small Nostr Wallet Connect client for TypeScript.
-      It lets an application use a constrained connection to an existing Lightning
-      wallet. It is not a wallet, a payment rail, a custody layer, a policy engine
-      or an invoice verifier, and it is careful to stay that way.
+      If your app, agent or paid API needs to spend sats, <strong>nwc-kit</strong>
+      gives it a constrained Nostr Wallet Connect connection to the user's existing
+      Lightning wallet. The user keeps the wallet and its keys; your application
+      gets a narrow, authenticated way to ask it to act.
     </p>
     <div class="cta">
       <code class="install">npm install @forgesworn/nwc-kit</code>
@@ -65,7 +65,46 @@
   </div>
 </section>
 
-<section class="strip">
+<section class="strip why">
+  <div class="wrap">
+    <h2>Why would you need it?</h2>
+    <p class="section-lede">
+      <strong>nwc-kit</strong> is the protocol layer in the bridge between an
+      application and a wallet. It is useful when software needs to request a
+      payment, but must not become the wallet, hold a seed or pretend a relay is
+      trustworthy.
+    </p>
+    <div class="grid-3">
+      <article>
+        <h3>Build a paid service</h3>
+        <p>
+          Let a user-authorised wallet pay for an API call, a tool, compute or
+          content without putting wallet keys on your server. This is the shape
+          used by the <a href="https://github.com/forgesworn/402-mcp">402-mcp</a>
+          payment bridge.
+        </p>
+      </article>
+      <article>
+        <h3>Give an agent spending power</h3>
+        <p>
+          An agent can discover capabilities and request a payment through a
+          bounded connection. Approval, budgets and business policy stay with
+          the application and the wallet, not inside this protocol client.
+        </p>
+      </article>
+      <article>
+        <h3>Keep the boundary small</h3>
+        <p>
+          You get NIP-47 transport, NIP-44 v2 encryption and authenticated
+          responses. You do not get custody, invoice verification or settlement
+          claims. That narrow boundary is the point.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="strip security-strip">
   <div class="wrap grid-3">
     <article>
       <h3>The relay is untrusted</h3>
