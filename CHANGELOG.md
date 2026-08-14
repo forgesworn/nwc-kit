@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.1.4 (2026-08-14)
+
+### Fixed
+
+- Transaction and wallet-info results no longer reject `""` and `null` in
+  optional fields. Go marshals an unset string as `""` and a nil pointer as
+  `null` unless the struct tag says `omitempty`, and Alby Hub's NIP-47 structs
+  mostly do not carry it. Its ordinary responses therefore arrive full of empty
+  strings and nulls where a literal reading of the specification expects the
+  field to be missing.
+
+  The effect was severe. `makeInvoice()` failed **every** time against Alby Hub,
+  because a freshly created invoice has no preimage and the empty string was
+  read as a malformed one. `lookupInvoice()` failed on anything unsettled,
+  `listTransactions()` failed on any page containing a pending entry, and
+  `getInfo()` failed whenever a single optional field, such as an unset node
+  alias or colour, came back null.
+
+  Emptiness is now recognised as absence wherever a field is optional. Values
+  that are present and wrong are still refused, and `payInvoice()` still demands
+  a real preimage: there it is the evidence of settlement rather than an
+  optional detail, so an empty one remains a rejection.
+
+- An empty `invoice` is treated as absence rather than corruption, because an
+  outgoing keysend payment has no invoice to report.
+
+### Added
+
+- `test/wallet-shapes.test.ts`, fixtures taken from what shipping wallets put on
+  the wire rather than from what the specification's prose describes.
+
 ## 0.1.3 (2026-08-14)
 
 ### Documented

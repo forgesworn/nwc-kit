@@ -298,7 +298,10 @@ describe('NwcClient core operations', () => {
       'not-an-object',
       { payment_hash: 'bad' },
       { preimage: 'bad' },
-      { invoice: '' },
+      // An empty invoice is absence, not corruption: a keysend payment has no
+      // invoice, and wallets serialising from a non-optional string spell that
+      // as "". An over-long one is still refused.
+      { invoice: 'x'.repeat(20_001) },
       { type: 'sideways' },
       { state: 'unknown' },
       { amount: -1 },
