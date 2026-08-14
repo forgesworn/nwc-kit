@@ -49,6 +49,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/**
+ * True when a field carries no value, however the wallet chose to spell it.
+ *
+ * Go marshals an unset string as `""` and a nil pointer as `null` unless the
+ * struct tag says `omitempty`, and NIP-47 wallet services written in Go are
+ * common. Alby Hub sends `"preimage": ""` and `"settled_at": null` on every
+ * unsettled invoice, so reading `""` as a malformed preimage rejects the most
+ * ordinary response there is: an invoice that has just been created.
+ *
+ * This is about how emptiness is spelled, not about tolerating bad data. A
+ * preimage that is present and not 32 bytes of hex is still refused, and
+ * `pay_invoice` still demands a real one, because there the preimage is the
+ * evidence of settlement rather than an optional detail.
+ */
+function isAbsent(value: unknown): boolean {
+  return value === undefined || value === null || value === ''
+}
+
 function splitWords(value: string | undefined): string[] {
   return value?.trim().split(/\s+/).filter(Boolean) ?? []
 }
@@ -411,21 +429,23 @@ export class NwcClient {
     const result = await this.execute('get_info', {}, options)
     if (!isRecord(result)) throw new NwcError('INVALID_RESPONSE', 'get_info result is not an object')
     const methods = boundedStringList(result.methods, 'get_info methods')
-    const extensions = result.extensions === undefined
+    // Every optional field here is a nil-able pointer in at least one shipping
+    // wallet, so each arrives as null rather than absent when it has no value.
+    const extensions = isAbsent(result.extensions)
       ? undefined
       : boundedStringList(result.extensions, 'get_info extensions')
-    const alias = optionalBoundedString(result.alias, 'alias')
-    const color = optionalBoundedString(result.color, 'color', 64)
-    const pubkey = optionalBoundedString(result.pubkey, 'pubkey', 64)
+    const alias = isAbsent(result.alias) ? undefined : optionalBoundedString(result.alias, 'alias')
+    const color = isAbsent(result.color) ? undefined : optionalBoundedString(result.color, 'color', 64)
+    const pubkey = isAbsent(result.pubkey) ? undefined : optionalBoundedString(result.pubkey, 'pubkey', 64)
     if (pubkey !== undefined && !HEX_64.test(pubkey)) {
       throw new NwcError('INVALID_RESPONSE', 'get_info pubkey must be 32-byte hex')
     }
-    const network = optionalBoundedString(result.network, 'network', 64)
-    const blockHash = optionalBoundedString(result.block_hash, 'block_hash', 64)
+    const network = isAbsent(result.network) ? undefined : optionalBoundedString(result.network, 'network', 64)
+    const blockHash = isAbsent(result.block_hash) ? undefined : optionalBoundedString(result.block_hash, 'block_hash', 64)
     if (blockHash !== undefined && !HEX_64.test(blockHash)) {
       throw new NwcError('INVALID_RESPONSE', 'get_info block_hash must be 32-byte hex')
     }
-    const blockHeight = result.block_height === undefined
+    const blockHeight = isAbsent(result.block_height)
       ? undefined
       : positiveSafeInteger(result.block_height, 'block_height', true, 'INVALID_RESPONSE')
     return {
@@ -615,26 +635,26 @@ export class NwcClient {
 
   protected validateTransaction(value: unknown, method: string): NwcTransaction {
     if (!isRecord(value)) throw new NwcError('INVALID_RESPONSE', `${method} result is not an object`)
-    if (value.payment_hash !== undefined && (typeof value.payment_hash !== 'string' || !HEX_64.test(value.payment_hash))) {
+    if (!isAbsent(value.payment_hash) && (typeof value.payment_hash !== 'string' || !HEX_64.test(value.payment_hash))) {
       throw new NwcError('INVALID_RESPONSE', `${method} returned an invalid payment_hash`)
     }
-    if (value.preimage !== undefined && (typeof value.preimage !== 'string' || !HEX_64.test(value.preimage))) {
+    if (!isAbsent(value.preimage) && (typeof value.preimage !== 'string' || !HEX_64.test(value.preimage))) {
       throw new NwcError('INVALID_RESPONSE', `${method} returned an invalid preimage`)
     }
-    if (value.invoice !== undefined && (typeof value.invoice !== 'string' || value.invoice.length === 0 || value.invoice.length > MAX_INVOICE_CHARS)) {
+    if (!isAbsent(value.invoice) && (typeof value.invoice !== 'string' || value.invoice.length > MAX_INVOICE_CHARS)) {
       throw new NwcError('INVALID_RESPONSE', `${method} returned an invalid invoice`)
     }
-    if (value.type !== undefined && value.type !== 'incoming' && value.type !== 'outgoing') {
+    if (!isAbsent(value.type) && value.type !== 'incoming' && value.type !== 'outgoing') {
       throw new NwcError('INVALID_RESPONSE', `${method} returned an invalid transaction type`)
     }
-    if (value.state !== undefined && !['pending', 'settled', 'accepted', 'expired', 'failed'].includes(value.state as string)) {
+    if (!isAbsent(value.state) && !['pending', 'settled', 'accepted', 'expired', 'failed'].includes(value.state as string)) {
       throw new NwcError('INVALID_RESPONSE', `${method} returned an invalid transaction state`)
     }
-    const description = optionalBoundedString(value.description, 'description')
-    if (value.description_hash !== undefined && (typeof value.description_hash !== 'string' || !HEX_64.test(value.description_hash))) {
+    const description = isAbsent(value.description) ? undefined : optionalBoundedString(value.description, 'description')
+    if (!isAbsent(value.description_hash) && (typeof value.description_hash !== 'string' || !HEX_64.test(value.description_hash))) {
       throw new NwcError('INVALID_RESPONSE', `${method} returned an invalid description_hash`)
     }
-    if (value.metadata !== undefined) {
+    if (!isAbsent(value.metadata)) {
       if (!isRecord(value.metadata)) throw new NwcError('INVALID_RESPONSE', `${method} returned invalid metadata`)
       try {
         if (JSON.stringify(value.metadata).length > MAX_METADATA_CHARS) {
@@ -646,22 +666,22 @@ export class NwcClient {
       }
     }
     for (const field of ['amount', 'fees_paid', 'created_at', 'expires_at', 'settled_at'] as const) {
-      if (value[field] !== undefined) positiveSafeInteger(value[field], field, true, 'INVALID_RESPONSE')
+      if (!isAbsent(value[field])) positiveSafeInteger(value[field], field, true, 'INVALID_RESPONSE')
     }
     return {
-      ...(value.type !== undefined ? { type: value.type as 'incoming' | 'outgoing' } : {}),
-      ...(value.state !== undefined ? { state: value.state as 'pending' | 'settled' | 'accepted' | 'expired' | 'failed' } : {}),
-      ...(value.invoice !== undefined ? { invoice: value.invoice as string } : {}),
+      ...(isAbsent(value.type) ? {} : { type: value.type as 'incoming' | 'outgoing' }),
+      ...(isAbsent(value.state) ? {} : { state: value.state as 'pending' | 'settled' | 'accepted' | 'expired' | 'failed' }),
+      ...(isAbsent(value.invoice) ? {} : { invoice: value.invoice as string }),
       ...(description !== undefined ? { description } : {}),
-      ...(value.description_hash !== undefined ? { description_hash: (value.description_hash as string).toLowerCase() } : {}),
-      ...(typeof value.payment_hash === 'string' ? { payment_hash: value.payment_hash.toLowerCase() } : {}),
-      ...(typeof value.preimage === 'string' ? { preimage: value.preimage.toLowerCase() } : {}),
-      ...(value.amount !== undefined ? { amount: value.amount as number } : {}),
-      ...(value.fees_paid !== undefined ? { fees_paid: value.fees_paid as number } : {}),
-      ...(value.created_at !== undefined ? { created_at: value.created_at as number } : {}),
-      ...(value.expires_at !== undefined ? { expires_at: value.expires_at as number } : {}),
-      ...(value.settled_at !== undefined ? { settled_at: value.settled_at as number } : {}),
-      ...(value.metadata !== undefined ? { metadata: value.metadata as Record<string, unknown> } : {}),
+      ...(isAbsent(value.description_hash) ? {} : { description_hash: (value.description_hash as string).toLowerCase() }),
+      ...(isAbsent(value.payment_hash) ? {} : { payment_hash: (value.payment_hash as string).toLowerCase() }),
+      ...(isAbsent(value.preimage) ? {} : { preimage: (value.preimage as string).toLowerCase() }),
+      ...(isAbsent(value.amount) ? {} : { amount: value.amount as number }),
+      ...(isAbsent(value.fees_paid) ? {} : { fees_paid: value.fees_paid as number }),
+      ...(isAbsent(value.created_at) ? {} : { created_at: value.created_at as number }),
+      ...(isAbsent(value.expires_at) ? {} : { expires_at: value.expires_at as number }),
+      ...(isAbsent(value.settled_at) ? {} : { settled_at: value.settled_at as number }),
+      ...(isAbsent(value.metadata) ? {} : { metadata: value.metadata as Record<string, unknown> }),
     }
   }
 
