@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.7 (2026-08-14)
+
+### Documented
+
+- Record the controlled mainnet Rizful acceptance through the 402-mcp payment
+  path, while keeping the one-wallet/provider limitation explicit.
+- Add npm funding metadata alongside the repository and documentation sponsor
+  links.
+
 ## 0.1.6 (2026-08-14)
 
 ### Fixed
