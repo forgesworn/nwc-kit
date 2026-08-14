@@ -28,9 +28,23 @@ describe('NWC extension 05 transaction history', () => {
     client.close()
   })
 
-  it('fails closed when extension 05 is unavailable', async () => {
+  it('accepts a wallet that advertises the method but publishes no extensions tag', async () => {
+    // No surveyed wallet service publishes an extensions tag. Alby Hub, Coinos
+    // and @getalby/sdk all name list_transactions in the capability list and
+    // stop there, so requiring the tag refuses every wallet that implements it.
     const transport = new FakeTransport()
     transport.infoExtensions = []
+    const client = new NwcTransactionHistoryClient(VALID_URI, { transport })
+    await expect(client.listTransactions()).resolves.toMatchObject({
+      transactions: [{ type: 'incoming' }],
+    })
+    client.close()
+  })
+
+  it('fails closed when the wallet advertises neither the extension nor the method', async () => {
+    const transport = new FakeTransport()
+    transport.infoExtensions = []
+    transport.infoMethods = ['get_balance', 'pay_invoice']
     const client = new NwcTransactionHistoryClient(VALID_URI, { transport })
     await expect(client.listTransactions()).rejects.toMatchObject({ code: 'UNSUPPORTED_EXTENSION' })
     client.close()

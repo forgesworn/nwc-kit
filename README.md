@@ -137,8 +137,13 @@ rather than what the specification says it should.
 | --- | --- | --- |
 | Alby Hub | Works | Unset fields arrive as `""` and `null`; handled since 0.1.4 |
 | Coinos | Works | Advertises `nip44_v2`, omits `error` on success |
-| Zeus | Works | Via `@getalby/sdk`. No `extensions` tag, so extension 05 is unavailable |
-| LNbits `nwcprovider` | **Incompatible** | NIP-04 only, and publishes no `encryption` tag |
+| Zeus | Works | Via `@getalby/sdk` |
+| LNbits `nwcprovider` | Not yet | NIP-04 only today. [PR #51](https://github.com/lnbits/nwcprovider/pull/51) adds NIP-44 v2 and would make it work |
+
+No surveyed wallet publishes an `extensions` tag, so a method named in the
+capability list is accepted as the wallet's declaration of it. That is the
+wallet's own explicit statement rather than an assumption, and `execute` refuses
+any method missing from that list regardless.
 
 `payInvoice` refuses an empty preimage, and that refusal is an ambiguous outcome
 rather than a failure. Zeus returns exactly that shape deliberately, to mean an

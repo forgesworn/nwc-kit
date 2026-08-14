@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.1.6 (2026-08-14)
+
+### Fixed
+
+- `listTransactions()` no longer requires an `extensions` tag. It previously
+  refused any wallet whose kind 13194 event did not name `05` there, and no
+  wallet service surveyed publishes that tag at all: not Alby Hub, not Coinos,
+  not `@getalby/sdk`, which is what Zeus speaks through. The extensions
+  mechanism arrived after `list_transactions` was already deployed and nobody
+  went back, so the requirement refused every wallet that implements the method
+  on the grounds that it had not said so twice.
+
+  A method named in the wallet's capability list is now accepted as the
+  declaration of it. That is the wallet's own explicit statement rather than an
+  assumption, `execute` still refuses any method missing from that list, and
+  `validateTransaction` still guards the response. A wallet advertising neither
+  the extension nor the method is still refused.
+
+### Documented
+
+- LNbits `nwcprovider` is reachable after all.
+  [PR #51](https://github.com/lnbits/nwcprovider/pull/51) adds NIP-44 v2 and has
+  been open and unreviewed since July. Its padding was checked against
+  `nostr-tools` across eighteen plaintext lengths, boundaries included, and
+  agrees byte for byte, so landing it would make LNbits work with this client.
+
 ## 0.1.5 (2026-08-14)
 
 ### Fixed
