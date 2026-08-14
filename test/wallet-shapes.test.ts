@@ -144,6 +144,32 @@ describe('shapes real wallet services put on the wire', () => {
     }
   })
 
+  it('refuses a timestamp that is plainly in milliseconds', async () => {
+    // Coinos shipped millisecond timestamps here and it broke a client's date
+    // parser. The value passes every other check, so without a range bound it
+    // reaches application code as a date tens of thousands of years out.
+    const client = new NwcClient(VALID_URI, {
+      transport: walletReturning({ payment_hash: 'ab'.repeat(32), expires_at: 1_786_600_000_000 }),
+    })
+    try {
+      await expect(client.makeInvoice({ amount: 1 }))
+        .rejects.toMatchObject({ code: 'INVALID_RESPONSE' })
+    } finally {
+      client.close()
+    }
+  })
+
+  it('accepts a plausible seconds timestamp at the boundary', async () => {
+    const client = new NwcClient(VALID_URI, {
+      transport: walletReturning({ payment_hash: 'ab'.repeat(32), expires_at: 4_102_444_800 }),
+    })
+    try {
+      expect((await client.makeInvoice({ amount: 1 })).expires_at).toBe(4_102_444_800)
+    } finally {
+      client.close()
+    }
+  })
+
   it('still refuses a payment whose preimage is empty', async () => {
     // The phoenixd bridge observed in testing returned an empty preimage as a
     // successful result when its node could not route the payment. For
