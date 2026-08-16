@@ -65,6 +65,54 @@
   </div>
 </section>
 
+<section class="hero-diagram">
+  <div class="wrap">
+    <figure class="figure">
+      <div class="fig-scroll">
+        <svg class="diagram" viewBox="0 0 900 196" role="img"
+             aria-label="Your app talks through nwc-kit and an untrusted relay to a wallet it never controls; the signed response is verified before it is trusted.">
+          <defs>
+            <marker id="ah1" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto">
+              <polygon class="ah" points="0,0 8,4 0,8" />
+            </marker>
+          </defs>
+
+          <rect class="b" x="20" y="44" width="160" height="64" rx="9" />
+          <text class="t" x="100" y="80" text-anchor="middle">Your app</text>
+
+          <rect class="b b-nostr" x="240" y="44" width="160" height="64" rx="9" />
+          <text class="t" x="320" y="74" text-anchor="middle">nwc-kit</text>
+          <text class="t-sub nostr" x="320" y="92" text-anchor="middle">the client</text>
+
+          <rect class="b b-ghost" x="460" y="44" width="160" height="64" rx="9" />
+          <text class="t" x="540" y="74" text-anchor="middle">Relay</text>
+          <text class="t-sub muted" x="540" y="92" text-anchor="middle">untrusted</text>
+
+          <rect class="b b-money" x="680" y="44" width="160" height="64" rx="9" />
+          <text class="t" x="760" y="74" text-anchor="middle">Wallet</text>
+          <text class="t-sub money" x="760" y="92" text-anchor="middle">keys · funds</text>
+
+          <line class="flow" x1="182" y1="76" x2="236" y2="76" marker-end="url(#ah1)" />
+          <text class="elbl" x="209" y="36" text-anchor="middle">asks to pay</text>
+
+          <line class="flow flow-nostr" x1="402" y1="76" x2="456" y2="76" marker-end="url(#ah1)" />
+          <text class="elbl-nostr" x="430" y="36" text-anchor="middle">encrypted</text>
+
+          <line class="flow flow-dash" x1="622" y1="76" x2="676" y2="76" marker-end="url(#ah1)" />
+          <text class="elbl" x="650" y="36" text-anchor="middle">relayed</text>
+
+          <path class="flow" d="M760,108 L760,150 L322,150 L322,110" marker-end="url(#ah1)" />
+          <text class="elbl" x="541" y="168" text-anchor="middle">signed response — verified before it is trusted</text>
+        </svg>
+      </div>
+      <figcaption><b>nwc-kit is the protocol layer, not the wallet.</b> Your app gets an
+        authenticated, NIP-44-encrypted connection over a relay it is never asked to trust; the
+        wallet keeps its keys and funds. Every reply is checked — author, request reference,
+        recipient and method — before a single byte is decrypted.</figcaption>
+    </figure>
+  </div>
+</section>
+
 <section class="strip why">
   <div class="wrap">
     <h2>Why would you need it?</h2>
