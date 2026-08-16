@@ -112,6 +112,12 @@ That client always sends an explicit page `limit`, defaulting to 20 and capped
 at 20. Extension 05 advises clients to page by at most 20, and a wallet asked
 for no particular page size will apply a larger default of its own.
 
+## Recipes
+
+- [LNURLcash bearer notes over NWC](recipes/lnurlcash.md) — minting and melting
+  LNURLcash notes through an NWC wallet connection, checked against a live
+  (experimental) mint.
+
 ## Wallet compatibility
 
 This client refuses to send anything until it has read a **signed kind 13194
