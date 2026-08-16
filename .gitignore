@@ -4,3 +4,7 @@ coverage/
 *.tgz
 .DS_Store
 
+# Never commit key material or connection secrets
+*.secret
+*.key
+
