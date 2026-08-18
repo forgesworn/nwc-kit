@@ -29,7 +29,7 @@ const result = await build({
   metafile: true,
 })
 
-for (const file of ['index.html', 'styles.css', 'favicon.svg']) {
+for (const file of ['index.html', 'lnurlcash.html', 'styles.css', 'favicon.svg']) {
   await cp(resolve(site, file), resolve(out, file))
 }
 

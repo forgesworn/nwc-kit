@@ -25,9 +25,10 @@
       <span>nwc-kit</span>
     </a>
     <nav class="masthead-nav">
-      <a href="#demo">Demo</a>
-      <a href="#api">API</a>
-      <a href="#security">Security</a>
+      <a class="nav-mobile-hide" href="#demo">Demo</a>
+      <a class="nav-mobile-hide" href="#api">API</a>
+      <a class="nav-mobile-hide" href="#security">Security</a>
+      <a href="#recipes">Recipes</a>
       <a href="https://github.com/forgesworn/nwc-kit">GitHub</a>
       <a href="https://www.npmjs.com/package/@forgesworn/nwc-kit">npm</a>
     </nav>
@@ -148,6 +149,60 @@
           claims. That narrow boundary is the point.
         </p>
       </article>
+    </div>
+  </div>
+</section>
+
+<section id="recipes" class="recipes">
+  <div class="wrap">
+    <p class="eyebrow">Worked recipe · LNURLcash</p>
+    <h2>Move sats into a bearer note, then back to a wallet.</h2>
+    <p class="section-lede">
+      LNURLcash turns a Lightning payment preimage into the secret for a
+      bearer note. <strong>nwc-kit</strong> covers the wallet leg in both
+      directions, so a browser app can mint and melt notes through the user's
+      existing NWC connection without growing a wallet backend of its own.
+    </p>
+
+    <div class="recipe-grid">
+      <article class="recipe-card">
+        <p class="recipe-step">01 · mint a note</p>
+        <h3>Pay the mint's invoice</h3>
+        <p>
+          Call <code>payInvoice()</code>, verify the returned preimage against
+          the invoice payment hash, then claim and rotate the note. The
+          preimage is the bearer secret, so accepting the wrong one means
+          accepting a worthless note.
+        </p>
+      </article>
+      <article class="recipe-card">
+        <p class="recipe-step">02 · melt a note</p>
+        <h3>Invoice the mint back</h3>
+        <p>
+          Call <code>makeInvoice()</code>, give that invoice to the mint, then
+          poll <code>lookupInvoice()</code> until your wallet reports it
+          settled. An accepted melt request is not settlement proof.
+        </p>
+      </article>
+    </div>
+
+    <div class="recipe-action">
+      <div>
+        <strong>The boundary stays put.</strong>
+        <p>
+          nwc-kit does not implement LNURLcash, store bearer notes or verify
+          invoices. The worked recipe uses <a href="https://github.com/forgesworn/farrier-kit">farrier-kit</a>
+          for the money checks and has been checked against a live experimental
+          mint. LNURLcash is still a draft, so keep the connection and the note
+          value small while testing.
+        </p>
+      </div>
+      <div class="recipe-links">
+        <a class="button primary" href="./lnurlcash.html">Explore LNURLcash</a>
+        <a class="button" href="https://github.com/forgesworn/nwc-kit/blob/main/recipes/lnurlcash.md">
+          Read the recipe
+        </a>
+      </div>
     </div>
   </div>
 </section>
