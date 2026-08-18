@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LNURLcash over Nostr Wallet Connect · nwc-kit</title>
+<meta name="description" content="Use nwc-kit to mint and melt LNURLcash bearer notes through an existing Lightning wallet. Explore the wallet, experimental mint and hardware vault.">
+<meta name="theme-color" content="#0a0e17">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src wss: https:; base-uri 'none'; form-action 'none'">
+<meta property="og:title" content="LNURLcash over Nostr Wallet Connect">
+<meta property="og:description" content="Mint and melt Lightning bearer notes through an existing NWC wallet connection, without adding a wallet backend to the browser app.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nwc-kit.forgesworn.dev/lnurlcash.html">
+<link rel="canonical" href="https://nwc-kit.forgesworn.dev/lnurlcash.html">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <a class="wordmark" href="./">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z" fill="currentColor"/></svg>
+      <span>nwc-kit</span>
+    </a>
+    <nav class="masthead-nav">
+      <a href="./">Home</a>
+      <a href="https://github.com/forgesworn/nwc-kit/blob/main/recipes/lnurlcash.md">Recipe</a>
+      <a href="https://github.com/forgesworn/nwc-kit">GitHub</a>
+      <a class="nav-mobile-hide" href="https://www.npmjs.com/package/@forgesworn/nwc-kit">npm</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="page-hero">
+  <div class="wrap">
+    <p class="eyebrow">Worked integration · LUD-25 draft</p>
+    <h1>LNURLcash without putting<br>a wallet inside the app.</h1>
+    <p class="lede">
+      An LNURLcash note is an LNURL-withdraw link whose secret controls the
+      sats behind it. A browser app can use <strong>nwc-kit</strong> to ask the
+      user's existing Lightning wallet to pay the mint or receive a melt. The
+      app stays serverless and the wallet keeps its keys.
+    </p>
+    <div class="page-actions">
+      <a class="button primary" href="https://wallet.lnurlcash.com/">Open LNURLwallet</a>
+      <a class="button" href="https://github.com/forgesworn/nwc-kit/blob/main/recipes/lnurlcash.md">Read the NWC recipe</a>
+    </div>
+    <p class="maturity">
+      LNURLcash is an experimental draft. Use small amounts, treat each mint as
+      a counterparty, and read the current project status before relying on it.
+    </p>
+  </div>
+</section>
+
+<section class="page-section alt">
+  <div class="wrap">
+    <h2>What actually happens</h2>
+    <p class="section-lede">
+      The note protocol and the wallet connection remain separate. That makes
+      the trust boundary easier to see and much harder to accidentally expand.
+    </p>
+    <div class="recipe-grid">
+      <article class="recipe-card">
+        <p class="recipe-step">Mint · wallet to note</p>
+        <h3>The preimage becomes the asset</h3>
+        <ol class="process-list">
+          <li>The app resolves the mint's LUD-16 payRequest and asks for an invoice in milli-satoshis.</li>
+          <li>The app decodes the invoice and checks the amount before asking the connected wallet to pay.</li>
+          <li><code>payInvoice()</code> returns the preimage. The app proves it matches the invoice payment hash.</li>
+          <li>The app claims the note and rotates it immediately, because the mint's node saw the original secret first.</li>
+        </ol>
+      </article>
+      <article class="recipe-card">
+        <p class="recipe-step">Melt · note to wallet</p>
+        <h3>The mint pays the wallet back</h3>
+        <ol class="process-list">
+          <li>The app asks the connected wallet to make an invoice for the note's value.</li>
+          <li>The app gives that invoice and the note secret to the mint's withdraw callback.</li>
+          <li>The mint accepts the melt and pays asynchronously. Acceptance is not settlement.</li>
+          <li>The app polls <code>lookupInvoice()</code> and marks the note spent only when the wallet reports settlement.</li>
+        </ol>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="ecosystem" class="page-section">
+  <div class="wrap">
+    <h2>Try the pieces</h2>
+    <p class="section-lede">
+      These are separate projects with separate responsibilities. You can use
+      the web wallet and experimental mint now, or inspect and flash the
+      hardware vault if you want note secrets kept off the browser.
+    </p>
+    <div class="ecosystem-grid">
+      <article class="ecosystem-card">
+        <span class="ecosystem-label">Browser wallet</span>
+        <h3>LNURLwallet</h3>
+        <p>
+          A serverless wallet for holding, rotating, splitting, combining and
+          melting notes from independent LNURLcash mints. Notes are encrypted
+          before they reach browser storage.
+        </p>
+        <a class="button primary" href="https://wallet.lnurlcash.com/">Open the wallet</a>
+        <a class="source-link" href="https://github.com/dni/lnurl-wallet">View wallet source</a>
+      </article>
+      <article class="ecosystem-card">
+        <span class="ecosystem-label">Experimental service</span>
+        <h3>ForgeSworn mint</h3>
+        <p>
+          A live, small-value LNURLcash mint for testing the current draft.
+          The mint custodies the sats behind its notes, so it is a counterparty
+          rather than a verifier.
+        </p>
+        <a class="button primary" href="https://mint.forgesworn.dev/">Open the mint</a>
+        <a class="source-link" href="https://github.com/dni/lnurl-mint">View mint source</a>
+      </article>
+      <article class="ecosystem-card">
+        <span class="ecosystem-label">Hardware companion</span>
+        <h3>LNURLvault</h3>
+        <p>
+          ESP32 firmware that generates and holds bearer-note secrets, with a
+          physical approval before plaintext export. Check the current
+          hardware status and security model before flashing it.
+        </p>
+        <a class="button primary" href="https://dni.github.io/lnurl-vault/">Open the vault installer</a>
+        <a class="source-link" href="https://github.com/dni/lnurl-vault">View vault source</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="page-section alt">
+  <div class="wrap grid-2">
+    <div>
+      <h2>Where nwc-kit fits</h2>
+      <p>
+        nwc-kit supplies authenticated NIP-47 requests over NIP-44 v2. It lets
+        the application pay a mint invoice, create an invoice for a melt, and
+        look up settlement without receiving the wallet's keys or running a
+        Lightning node of its own.
+      </p>
+      <p>
+        The NWC connection string is still a spending capability. Keep it in
+        private app-owned storage, give it the smallest useful budget and
+        expiry, and never send it to the mint.
+      </p>
+    </div>
+    <div class="boundary-box">
+      <h3>What remains the application's job</h3>
+      <p>
+        nwc-kit does not decode BOLT-11 invoices, verify payment preimages,
+        implement LNURLcash, store notes or decide whether a mint should be
+        trusted. <a href="https://github.com/forgesworn/farrier-kit">farrier-kit</a>
+        covers invoice and preimage verification.
+      </p>
+      <p>
+        Timeout, abort, close and publish failure remain ambiguous after an NWC
+        request starts. Reconcile the original invoice before retrying. A blind
+        retry can pay twice.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="page-section">
+  <div class="wrap">
+    <h2>Read the protocol and the code</h2>
+    <p class="section-lede">
+      Start with the <a href="https://github.com/lnurl/luds/blob/lnurlcash/25.md">LUD-25 draft</a>,
+      then use the <a href="https://github.com/forgesworn/nwc-kit/blob/main/recipes/lnurlcash.md">nwc-kit recipe</a>
+      for the wallet-facing TypeScript flow. The three projects above are open
+      source, so the claim surface is available to inspect rather than hidden
+      behind the demos.
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <p>
+      Built by <a href="https://github.com/forgesworn">ForgeSworn</a>. MIT licensed.
+      Part of a family of small freedom-tech kits.
+    </p>
+    <p class="support">
+      <a href="./">nwc-kit home</a>
+      <a href="https://github.com/forgesworn/nwc-kit">GitHub</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
