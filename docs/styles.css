@@ -293,6 +293,54 @@ code {
   margin-bottom: 28px;
 }
 
+/* ── worked recipes ───────────────────────────────────────── */
+
+.recipes {
+  padding: 72px 0;
+}
+
+.recipes .eyebrow { margin-bottom: 12px; }
+.recipes .section-lede strong { color: var(--text-primary); }
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.recipe-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.recipe-card p { color: var(--text-secondary); margin: 0; }
+.recipe-card .recipe-step {
+  margin-bottom: 10px;
+  color: var(--amber-400);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.recipe-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-top: 20px;
+  padding: 20px 24px;
+  background: var(--warn-bg);
+  border: 1px solid rgba(251, 191, 36, 0.32);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.recipe-action strong { color: var(--text-primary); }
+.recipe-action p { margin: 3px 0 0; max-width: 72ch; }
+.recipe-action .button { flex: none; }
+
 /* ── boundary diagram (under the hero) ────────────────────── */
 
 .hero-diagram { padding: 4px 0 60px; }
@@ -582,11 +630,12 @@ svg.diagram { width: 100%; height: auto; min-width: 600px; display: block; }
 /* ── responsive ───────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .grid-3, .grid-2 { grid-template-columns: 1fr; gap: 28px; }
+  .grid-3, .grid-2, .recipe-grid { grid-template-columns: 1fr; gap: 28px; }
   .demo-grid { grid-template-columns: 1fr; }
   .tape { height: 420px; }
   .hero { padding: 56px 0 44px; }
   .masthead-nav { gap: 14px; font-size: 0.78rem; }
+  .recipe-action { align-items: flex-start; flex-direction: column; }
 }
 
 @media (max-width: 560px) {

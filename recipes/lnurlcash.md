@@ -1,12 +1,13 @@
 # Recipe: LNURLcash bearer notes over NWC
 
-[LNURLcash](https://github.com/dni/lnurl-mint) is a bearer-note scheme built
-on plain LUD-03/LUD-06: a mint's node holds the sats, and whoever knows a
-note's secret owns its value. The reference wallet
-([lnurl-wallet](https://github.com/dni/lnurl-wallet)) is a serverless browser
-SPA, which makes NWC the natural wallet layer: NIP-47 is outbound-only from
-the client, so the SPA stays serverless, and every LNURLcash amount is already
-in milli-satoshis.
+[LNURLcash](https://github.com/lnurl/luds/blob/lnurlcash/25.md) is a draft
+bearer-note scheme built on plain LUD-03/LUD-06: a mint's node holds the sats,
+and whoever knows a note's secret owns its value. The reference
+[mint](https://github.com/dni/lnurl-mint) and
+[wallet](https://github.com/dni/lnurl-wallet) keep the two roles separate. The
+wallet is a serverless browser SPA, which makes NWC the natural wallet layer:
+NIP-47 is outbound-only from the client, so the SPA stays serverless, and every
+LNURLcash amount is already in milli-satoshis.
 
 Two flows touch a Lightning wallet. Both are automated below with `nwc-kit`.
 
@@ -23,8 +24,9 @@ import { tryDecodeBolt11, verifyPreimage } from 'farrier-kit'
 const client = new NwcClient(connectionUri)
 await client.connect()
 
-// 1. LUD-06 payRequest, then its callback with the amount (msat)
-const pay = await fetch(`${mint}/p`).then(r => r.json())
+// 1. Resolve the mint's LUD-16 payRequest, then call it with the amount (msat).
+// `_` is the reserved username for the mint's bare-domain address.
+const pay = await fetch(`${mint}/.well-known/lnurlp/_`).then(r => r.json())
 const { pr } = await fetch(`${pay.callback}?amount=${amountMsat}`).then(r => r.json())
 
 // 2. Verify the invoice asks for what you expect before paying it.
