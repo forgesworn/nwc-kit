@@ -35,7 +35,7 @@ layer, policy engine, or invoice verifier.
 - MIT licensed.
 
 Invoice and settlement verification belong in
-[`farrier-kit`](https://github.com/forgesworn/farrier-kit). A payer should verify
+[`farrier-kit`](https://farrier-kit.forgesworn.dev). A payer should verify
 the invoice before calling `payInvoice`, then verify the returned preimage
 against the invoice payment hash before recording payment.
 
