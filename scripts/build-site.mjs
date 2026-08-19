@@ -33,6 +33,10 @@ for (const file of ['index.html', 'lnurlcash.html', 'styles.css', 'favicon.svg']
   await cp(resolve(site, file), resolve(out, file))
 }
 
+// The three faces are served from this domain because the page's own CSP
+// forbids a third-party request and the colophon says so out loud.
+await cp(resolve(site, 'fonts'), resolve(out, 'fonts'), { recursive: true })
+
 // The site is served as plain static files. This only matters if the output is
 // ever handed to GitHub Pages as a fallback, which would otherwise run it
 // through Jekyll and strip anything beginning with an underscore.
