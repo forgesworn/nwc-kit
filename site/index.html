@@ -104,8 +104,9 @@
     <figcaption id="fig1-caption">
       <span class="fig-no">Fig. 1</span>. <b>nwc-kit is the protocol layer, not the wallet.</b>
       Your app gets an authenticated, NIP&#8209;44-encrypted connection over a relay it is
-      never asked to trust; the wallet keeps its keys and funds. Every reply is checked —
-      author, request reference, recipient and method — before a single byte is decrypted.
+      never asked to trust; the wallet keeps its keys and funds. Every reply's author,
+      request reference and recipient are checked before a single byte is decrypted, and
+      its result type before the result is read.
     </figcaption>
   </figure>
 
@@ -388,7 +389,7 @@ try {
     </div>
     <div class="spec-row">
       <dt><code>inspectNwcConnection()</code></dt>
-      <dd>Reads a connection URI — relays, wallet pubkey, budget hints — without exposing
+      <dd>Reads a connection URI (relays, wallet pubkey and any lud16) without exposing
         the secret.</dd>
     </div>
   </dl>
