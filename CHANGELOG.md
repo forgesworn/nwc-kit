@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.1.8 (2026-09-23)
+
+### Fixed
+
+- `getInfo()` accepts a 33-byte compressed Lightning node id (66 hex
+  characters, starting 02 or 03) as `pubkey`. It previously demanded 32-byte
+  hex and so refused the node id that LND-backed services and Alby Hub return.
+- The demo no longer labels a failed payment after publication as "rejected by
+  nwc-kit". A timeout or invalid response on `pay_invoice` now reads "outcome
+  unknown: reconcile before retrying".
+
+### Documented
+
+- Classify `WALLET_ERROR`: only an explicit refusal such as `PAYMENT_FAILED` or
+  `INSUFFICIENT_BALANCE` is definite; `INTERNAL`, `OTHER` and unrecognised codes
+  are ambiguous. `UNSUPPORTED_EXTENSION` joins the pre-publication list.
+- The wallet table separates Rizful, tested on mainnet, from wallets that were
+  only surveyed in code. `llms.txt` records the Rizful acceptance.
+- The site no longer claims the result method is checked before decryption, or
+  that `inspectNwcConnection()` returns budget hints. Its version is injected
+  at build time and the LNURLvault installer link points at
+  `vault.lnurlcash.com`.
+
 ## 0.1.7 (2026-08-14)
 
 ### Documented

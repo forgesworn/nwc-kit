@@ -61,7 +61,7 @@
     <p class="hero-meta reveal r5">
       One runtime dependency &nbsp;·&nbsp; Node&nbsp;22+, browsers, Deno, Bun
       &nbsp;·&nbsp; NIP&#8209;47 / NIP&#8209;44&nbsp;v2 &nbsp;·&nbsp; MIT
-      &nbsp;·&nbsp; <span class="flag">v0.1.7, API not frozen</span>
+      &nbsp;·&nbsp; <span class="flag">v__NWC_KIT_VERSION__, API not frozen</span>
     </p>
   </div>
 
@@ -104,8 +104,9 @@
     <figcaption id="fig1-caption">
       <span class="fig-no">Fig. 1</span>. <b>nwc-kit is the protocol layer, not the wallet.</b>
       Your app gets an authenticated, NIP&#8209;44-encrypted connection over a relay it is
-      never asked to trust; the wallet keeps its keys and funds. Every reply is checked —
-      author, request reference, recipient and method — before a single byte is decrypted.
+      never asked to trust; the wallet keeps its keys and funds. Every reply's author,
+      request reference and recipient are checked before a single byte is decrypted, and
+      its result type before the result is read.
     </figcaption>
   </figure>
 
@@ -188,10 +189,13 @@
     <div class="spec-row">
       <dt>Silence</dt>
       <dd>
-        Once publication begins, timeout, abort, close and publish failure are ambiguous
-        outcomes. A relay can store an event without returning a usable acknowledgement.
-        The library says so, the types say so, and the docs say so, because a blind retry
-        can pay twice.
+        Once publication begins, timeout, abort, close, publish failure and an invalid
+        response are all ambiguous outcomes. A relay can store an event without returning
+        a usable acknowledgement, and a wallet can answer with a success it cannot
+        substantiate. A wallet error is definite only when it is an explicit refusal such
+        as <code>PAYMENT_FAILED</code> or <code>INSUFFICIENT_BALANCE</code>;
+        <code>INTERNAL</code> and <code>OTHER</code> are not. Reconcile before retrying,
+        because a blind retry can pay twice.
       </dd>
     </div>
   </dl>
@@ -385,7 +389,7 @@ try {
     </div>
     <div class="spec-row">
       <dt><code>inspectNwcConnection()</code></dt>
-      <dd>Reads a connection URI — relays, wallet pubkey, budget hints — without exposing
+      <dd>Reads a connection URI (relays, wallet pubkey and any lud16) without exposing
         the secret.</dd>
     </div>
   </dl>

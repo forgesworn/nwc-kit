@@ -44,7 +44,8 @@ Convert sats explicitly at the application boundary and reject unsafe or
 ambiguous amounts before making a wallet request.
 
 Once a `payInvoice` request has been published, **every** failure is an unknown
-payment outcome. That includes `RESPONSE_TIMEOUT`, `REQUEST_ABORTED`,
+payment outcome unless the wallet explicitly refused it (see `WALLET_ERROR`
+below). That includes `RESPONSE_TIMEOUT`, `REQUEST_ABORTED`,
 `PUBLISH_FAILED`, `CLIENT_CLOSED` and, importantly, `INVALID_RESPONSE`.
 
 `INVALID_RESPONSE` is the one that surprises people. It means the wallet replied
@@ -55,9 +56,18 @@ telling you nothing you can rely on. This is not hypothetical: a real bridge
 observed during testing returned an empty preimage as a *successful* result when
 its node could not route the payment.
 
-Only failures raised **before** publication are safe to treat as definitely not
-paid: `INVALID_CONNECTION`, `INVALID_REQUEST`, `UNSUPPORTED_METHOD`,
-`UNSUPPORTED_ENCRYPTION` and `INFO_UNAVAILABLE`. Those never reach the wallet.
+`WALLET_ERROR` means the wallet sent a signed, authenticated error, and its own
+code is in `error.walletCode`. Only an explicit refusal is definite:
+`PAYMENT_FAILED`, `INSUFFICIENT_BALANCE`, `QUOTA_EXCEEDED`, `RATE_LIMITED`,
+`RESTRICTED`, `UNAUTHORIZED` or `NOT_IMPLEMENTED`. `INTERNAL` and `OTHER` are
+ambiguous: the wallet hit a problem, not necessarily before it attempted the
+payment. Treat any code outside that list the same way, including a missing one,
+which the library reports as `OTHER`. Reconcile before retrying.
+
+Apart from an explicit refusal, only failures raised **before** publication are
+safe to treat as definitely not paid: `INVALID_CONNECTION`, `INVALID_REQUEST`, `UNSUPPORTED_METHOD`,
+`UNSUPPORTED_ENCRYPTION`, `UNSUPPORTED_EXTENSION` and `INFO_UNAVAILABLE`. Those
+never reach the wallet.
 
 A relay can also store an event without returning a usable acknowledgement, so
 even `PUBLISH_FAILED` does not prove the wallet never saw the request. Reconcile
@@ -138,14 +148,17 @@ replaceable kind 13194 event whose content lists the supported methods, tagged
 
 ### Known wallet behaviour
 
-Surveyed by reading what each wallet's service code actually puts on the wire,
-rather than what the specification says it should.
+Only Rizful has been tested live. The others were surveyed by reading what each
+wallet's service code actually puts on the wire, rather than what the
+specification says it should, and are expected to work but have not been run
+against.
 
 | Wallet | Status | Note |
 | --- | --- | --- |
-| Alby Hub | Works | Unset fields arrive as `""` and `null`; handled since 0.1.4 |
-| Coinos | Works | Advertises `nip44_v2`, omits `error` on success |
-| Zeus | Works | Via `@getalby/sdk` |
+| Rizful | Tested (mainnet) | Controlled acceptance through the 402-mcp payment path |
+| Alby Hub | Expected (code survey) | Unset fields arrive as `""` and `null`; handled since 0.1.4 |
+| Coinos | Expected (code survey) | Advertises `nip44_v2`, omits `error` on success |
+| Zeus | Expected (code survey) | Via `@getalby/sdk` |
 | LNbits `nwcprovider` | Not yet | NIP-04 only today. [PR #51](https://github.com/lnbits/nwcprovider/pull/51) adds NIP-44 v2 and would make it work |
 
 No surveyed wallet publishes an `extensions` tag, so a method named in the

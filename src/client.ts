@@ -46,6 +46,14 @@ const MAX_TAG_ITEM_CHARS = 4096
 const MAX_EVENT_TAG_CHARS = 65_536
 const MAX_REQUEST_PLAINTEXT_CHARS = 32_768
 const HEX_128 = /^[0-9a-f]{128}$/i
+/**
+ * NIP-47 describes the `get_info` pubkey only as a hex string: it is the
+ * wallet's Lightning node id, not a Nostr key. Node ids are 33-byte compressed
+ * secp256k1 keys, 66 hex characters starting 02 or 03, and that is what LND,
+ * Alby Hub and nwc-lnd-bridge return. A 32-byte x-only key is still accepted
+ * for wallets that report one.
+ */
+const NODE_PUBKEY = /^(?:0[23][0-9a-f]{64}|[0-9a-f]{64})$/i
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -438,9 +446,9 @@ export class NwcClient {
       : boundedStringList(result.extensions, 'get_info extensions')
     const alias = isAbsent(result.alias) ? undefined : optionalBoundedString(result.alias, 'alias')
     const color = isAbsent(result.color) ? undefined : optionalBoundedString(result.color, 'color', 64)
-    const pubkey = isAbsent(result.pubkey) ? undefined : optionalBoundedString(result.pubkey, 'pubkey', 64)
-    if (pubkey !== undefined && !HEX_64.test(pubkey)) {
-      throw new NwcError('INVALID_RESPONSE', 'get_info pubkey must be 32-byte hex')
+    const pubkey = isAbsent(result.pubkey) ? undefined : optionalBoundedString(result.pubkey, 'pubkey', 66)
+    if (pubkey !== undefined && !NODE_PUBKEY.test(pubkey)) {
+      throw new NwcError('INVALID_RESPONSE', 'get_info pubkey must be a 33-byte compressed or 32-byte hex key')
     }
     const network = isAbsent(result.network) ? undefined : optionalBoundedString(result.network, 'network', 64)
     const blockHash = isAbsent(result.block_hash) ? undefined : optionalBoundedString(result.block_hash, 'block_hash', 64)

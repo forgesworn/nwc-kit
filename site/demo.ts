@@ -10,6 +10,7 @@ import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools/pure
 import * as nip44 from 'nostr-tools/nip44'
 import { NwcClient, NwcError } from '../src/index.js'
 import { NwcTransactionHistoryClient } from '../src/extensions/05.js'
+import { classifyFailure } from './outcome.js'
 import type {
   NwcEvent,
   NwcFilter,
@@ -18,7 +19,7 @@ import type {
   NwcTransport,
 } from '../src/types.js'
 
-type LogKind = 'send' | 'recv' | 'ok' | 'reject' | 'info'
+type LogKind = 'send' | 'recv' | 'ok' | 'reject' | 'unknown' | 'info'
 
 function bytesToHex(bytes: Uint8Array): string {
   let out = ''
@@ -61,7 +62,7 @@ function log(kind: LogKind, title: string, detail?: string): void {
 
   const marker = document.createElement('span')
   marker.className = 'tape-marker'
-  marker.textContent = { send: '→', recv: '←', ok: '✓', reject: '✗', info: '·' }[kind]
+  marker.textContent = { send: '→', recv: '←', ok: '✓', reject: '✗', unknown: '?', info: '·' }[kind]
 
   const label = document.createElement('span')
   label.className = 'tape-title'
@@ -325,7 +326,7 @@ const status = element<HTMLDivElement>('demo-status')
 const balanceOut = element<HTMLSpanElement>('wallet-balance')
 const scenarioSelect = element<HTMLSelectElement>('scenario')
 
-function setStatus(text: string, kind: 'idle' | 'busy' | 'ok' | 'error' = 'idle'): void {
+function setStatus(text: string, kind: 'idle' | 'busy' | 'ok' | 'warn' | 'error' = 'idle'): void {
   status.textContent = text
   status.dataset.kind = kind
 }
@@ -355,8 +356,14 @@ async function run(label: string, action: (client: NwcTransactionHistoryClient) 
     setStatus(`${label} succeeded.`, 'ok')
   } catch (error) {
     const message = describeError(error)
-    log('reject', `${label} rejected by nwc-kit`, message)
-    setStatus(message, 'error')
+    const outcome = classifyFailure(label, error)
+    if (outcome.kind === 'unknown') {
+      log('unknown', outcome.title, message)
+      setStatus(`Outcome unknown: reconcile before retrying. ${message}`, 'warn')
+    } else {
+      log('reject', outcome.title, message)
+      setStatus(message, 'error')
+    }
   } finally {
     refreshBalance()
   }

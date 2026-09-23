@@ -787,6 +787,7 @@ h3 { font-weight: 520; font-variation-settings: 'opsz' 32; }
 }
 #demo-status[data-kind='busy'] { color: var(--nostr); }
 #demo-status[data-kind='ok'] { color: var(--ok); }
+#demo-status[data-kind='warn'] { color: var(--warn); }
 #demo-status[data-kind='error'] { color: var(--bad); }
 
 .tape {
@@ -840,6 +841,13 @@ h3 { font-weight: 520; font-variation-settings: 'opsz' 32; }
   background: var(--bad-bg);
   border-color: color-mix(in srgb, var(--bad) 30%, transparent);
   color: var(--bad);
+}
+.tape-unknown { border-left-color: var(--warn); }
+.tape-unknown .tape-marker, .tape-unknown .tape-title { color: var(--warn); }
+.tape-unknown .tape-detail {
+  background: var(--warn-bg);
+  border-color: color-mix(in srgb, var(--warn) 30%, transparent);
+  color: var(--warn);
 }
 
 /* ── recipe cards ─────────────────────────────────────────── */
