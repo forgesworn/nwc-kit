@@ -148,14 +148,17 @@ replaceable kind 13194 event whose content lists the supported methods, tagged
 
 ### Known wallet behaviour
 
-Surveyed by reading what each wallet's service code actually puts on the wire,
-rather than what the specification says it should.
+Only Rizful has been tested live. The others were surveyed by reading what each
+wallet's service code actually puts on the wire, rather than what the
+specification says it should, and are expected to work but have not been run
+against.
 
 | Wallet | Status | Note |
 | --- | --- | --- |
-| Alby Hub | Works | Unset fields arrive as `""` and `null`; handled since 0.1.4 |
-| Coinos | Works | Advertises `nip44_v2`, omits `error` on success |
-| Zeus | Works | Via `@getalby/sdk` |
+| Rizful | Tested (mainnet) | Controlled acceptance through the 402-mcp payment path |
+| Alby Hub | Expected (code survey) | Unset fields arrive as `""` and `null`; handled since 0.1.4 |
+| Coinos | Expected (code survey) | Advertises `nip44_v2`, omits `error` on success |
+| Zeus | Expected (code survey) | Via `@getalby/sdk` |
 | LNbits `nwcprovider` | Not yet | NIP-04 only today. [PR #51](https://github.com/lnbits/nwcprovider/pull/51) adds NIP-44 v2 and would make it work |
 
 No surveyed wallet publishes an `extensions` tag, so a method named in the
