@@ -188,10 +188,13 @@
     <div class="spec-row">
       <dt>Silence</dt>
       <dd>
-        Once publication begins, timeout, abort, close and publish failure are ambiguous
-        outcomes. A relay can store an event without returning a usable acknowledgement.
-        The library says so, the types say so, and the docs say so, because a blind retry
-        can pay twice.
+        Once publication begins, timeout, abort, close, publish failure and an invalid
+        response are all ambiguous outcomes. A relay can store an event without returning
+        a usable acknowledgement, and a wallet can answer with a success it cannot
+        substantiate. A wallet error is definite only when it is an explicit refusal such
+        as <code>PAYMENT_FAILED</code> or <code>INSUFFICIENT_BALANCE</code>;
+        <code>INTERNAL</code> and <code>OTHER</code> are not. Reconcile before retrying,
+        because a blind retry can pay twice.
       </dd>
     </div>
   </dl>
