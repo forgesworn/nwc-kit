@@ -6,7 +6,7 @@ Live demo and documentation: https://nwc-kit.forgesworn.dev
 GitHub: https://github.com/forgesworn/nwc-kit
 npm: https://www.npmjs.com/package/@forgesworn/nwc-kit
 
-**Early 0.x release.** Verified against the NIP-44 protocol vectors and an adversarial fake wallet, but not yet against a real wallet service in the field. The API may move within 0.x; pin an exact version.
+**Early 0.x release.** Verified against the NIP-44 protocol vectors, an adversarial fake wallet, and a controlled mainnet acceptance through Rizful in the 402-mcp payment path. That proves one wallet and provider path, not every real-world implementation. The API may move within 0.x; pin an exact version.
 
 ESM-only. Node 22+, browsers, Deno and Bun. No `node:` imports. One runtime dependency: `nostr-tools`. Two subpath exports: `@forgesworn/nwc-kit` (main), `@forgesworn/nwc-kit/extensions/05` (transaction history).
 
