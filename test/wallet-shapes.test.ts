@@ -47,6 +47,19 @@ const ALBY_GET_INFO_UNSET = {
   lud16: null,
 }
 
+// A Lightning node id is a 33-byte compressed key, which is what LND's getinfo
+// identity_pubkey and Alby Hub's get_info pubkey carry. This one is the node id
+// of ACINQ's public node, a real key rather than a fabricated one.
+const LND_GET_INFO = {
+  alias: 'bridge',
+  color: '#3399ff',
+  pubkey: '03864ef025fde8fb587d989186ce6a4a186895ee44a926bfc370e2c366597a3f8f',
+  network: 'mainnet',
+  block_height: 900000,
+  block_hash: '00'.repeat(32),
+  methods: ['get_info', 'get_balance', 'make_invoice'],
+}
+
 function walletReturning(result: unknown): FakeTransport {
   const transport = new FakeTransport()
   // Alby Hub marshals error as `json:"error,omitempty"` over a nil pointer, so
@@ -140,6 +153,25 @@ describe('shapes real wallet services put on the wire', () => {
       expect(info.pubkey).toBeUndefined()
       expect(info.block_height).toBeUndefined()
     } finally {
+      client.close()
+    }
+  })
+
+  it('get_info accepts a 33-byte compressed Lightning node id', async () => {
+    const client = new NwcClient(VALID_URI, { transport: walletReturning(LND_GET_INFO) })
+    try {
+      const info = await client.getInfo()
+      expect(info.pubkey).toBe(LND_GET_INFO.pubkey)
+      expect(info.network).toBe('mainnet')
+    } finally {
+      client.close()
+    }
+  })
+
+  it('get_info still refuses a node id with the wrong prefix or length', async () => {
+    for (const pubkey of ['04' + 'ab'.repeat(32), '03' + 'ab'.repeat(33), 'ab'.repeat(31)]) {
+      const client = new NwcClient(VALID_URI, { transport: walletReturning({ ...LND_GET_INFO, pubkey }) })
+      await expect(client.getInfo()).rejects.toMatchObject({ code: 'INVALID_RESPONSE' })
       client.close()
     }
   })

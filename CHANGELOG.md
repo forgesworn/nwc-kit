@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `getInfo()` accepts a 33-byte compressed Lightning node id (66 hex
+  characters, starting 02 or 03) as `pubkey`. It previously demanded 32-byte
+  hex and so refused the node id that LND-backed services and Alby Hub return.
+
 ## 0.1.7 (2026-08-14)
 
 ### Documented
