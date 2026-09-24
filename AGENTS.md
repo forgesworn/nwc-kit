@@ -1,4 +1,4 @@
-# AGENTS.md — nwc-kit
+# AGENTS.md: nwc-kit
 
 Instructions for AI coding agents working on this repository.
 
@@ -11,7 +11,7 @@ someone else's Lightning wallet.
 
 It is **not** a wallet, wallet service, payment rail, custody layer, policy
 engine or invoice verifier. Invoice decoding and preimage verification belong in
-`farrier-kit`. Keep this package narrow — scope creep here is a security
+`farrier-kit`. Keep this package narrow: scope creep here is a security
 problem, not just a design one.
 
 ## Commands
@@ -32,26 +32,28 @@ problem, not just a design one.
 
 ```
 src/
-  index.ts          — barrel re-export (main entry)
-  client.ts         — NwcClient: discovery, request lifecycle, response authentication
-  connection.ts     — NWC URI parsing, relay normalisation, conversation keys
-  transport.ts      — NostrRelayTransport, the default SimplePool transport
-  error.ts          — NwcError, control-character-safe wallet messages
-  types.ts          — public types, the three NWC event kinds
-  extensions/05.ts  — optional transaction history, separate export
+  index.ts          : barrel re-export (main entry)
+  client.ts         : NwcClient, discovery, request lifecycle, response authentication
+  connection.ts     : NWC URI parsing, relay normalisation, conversation keys
+  transport.ts      : NostrRelayTransport, the default SimplePool transport
+  error.ts          : NwcError, control-character-safe wallet messages
+  types.ts          : public types, the three NWC event kinds
+  extensions/05.ts  : optional transaction history, separate export
 test/
-  helpers.ts        — FakeTransport, a wallet that signs real events
+  helpers.ts        : FakeTransport, a wallet that signs real events
 ```
 
 Two subpath exports: `@forgesworn/nwc-kit` and `@forgesworn/nwc-kit/extensions/05`.
 
 ## Conventions
 
-- **British English** — normalise, serialise, behaviour
-- **Milli-satoshis** — every NIP-47 amount, balance and fee. Convert at the application boundary
-- **NIP-44 v2 only** — legacy NIP-04 is refused, not merely deprecated
-- **ESM-only**, no `node:` imports in `src/` — the source must run in a browser
-- **One runtime dependency** (`nostr-tools`, pinned exactly). A second needs a written reason
+- **British English**: normalise, serialise, behaviour
+- **Milli-satoshis**: every NIP-47 amount, balance and fee. Convert at the application boundary
+- **NIP-44 v2 only**: legacy NIP-04 is refused, not merely deprecated
+- **ESM-only**, no `node:` imports in `src/`: the source must run in a browser
+- **One runtime dependency** (`nostr-tools`, pinned exactly), imported through the
+  `pure`, `pool`, `nip44`, `core` and `filter` subpaths only. A second dependency
+  needs a written reason
 - **Adversarial tests** for security-sensitive changes; a happy-path test is not enough
 - Never commit a real NWC connection string or a live wallet fixture
 
@@ -71,7 +73,7 @@ or docs, as though the payment did not happen.
 spec's prose. Two divergences are load-bearing here and have regression tests:
 
 - A successful response may omit `error` entirely rather than setting it to
-  null — Alby Hub marshals it `json:"error,omitempty"` over a nil pointer.
+  null; Alby Hub marshals it `json:"error,omitempty"` over a nil pointer.
 - `list_transactions` must always send an explicit `limit`, because wallets
   apply their own default otherwise. Alby Hub's is 50, above the 20 the
   extension advises clients to page by.
@@ -88,7 +90,7 @@ the kind 13194 info event a SHOULD. This client treats it as mandatory, because 
 wallet advertising no encryption mode defaults to NIP-04 under the spec, and this
 client does not implement NIP-04. Wallets that skip the info event fail with
 `INFO_UNAVAILABLE`. Do not relax this to "assume NIP-44 when the info event is
-missing" — that guesses about the encryption of a spending capability.
+missing", that guesses about the encryption of a spending capability.
 
 ## Testing against a real wallet
 
