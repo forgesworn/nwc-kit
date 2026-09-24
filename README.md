@@ -75,6 +75,10 @@ the original invoice before retrying; a blind retry can pay twice.
 
 ## Usage
 
+```bash
+npm install @forgesworn/nwc-kit
+```
+
 ```ts
 import { NwcClient } from '@forgesworn/nwc-kit'
 import { tryDecodeBolt11, verifyPreimage } from 'farrier-kit'
