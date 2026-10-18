@@ -16,71 +16,205 @@ ESM-only. Node 22+, browsers, Deno and Bun. No `node:` imports. One runtime depe
 
 npm install @forgesworn/nwc-kit
 
+The Usage example also uses `farrier-kit` (an application dependency, not a dependency of `nwc-kit`): npm install farrier-kit
+
 ## Subpath Exports
 
 ### @forgesworn/nwc-kit (main entry)
 
 Classes:
-- `new NwcClient(connectionUri, options?)` — options: `{ transport?, requestTimeoutMs?, infoTimeoutMs?, now? }`. Default request timeout 60000ms, info timeout 10000ms; both must be 100–300000ms
-- `new NostrRelayTransport(pool?)` — default transport over `nostr-tools` `SimplePool`
-- `NwcError` — `{ code: NwcErrorCode, message: string, walletCode?: string }`
+- `new NwcClient(connectionUri, options?)`: options are `{ transport?: NwcTransport, requestTimeoutMs?: number, infoTimeoutMs?: number, now?: () => number }`. Default request timeout 60000ms, info timeout 10000ms; both must be 100 to 300000ms. `now` returns Unix seconds and defaults to the system clock. Throws `NwcError` `INVALID_CONNECTION` for a bad URI
+- `new NostrRelayTransport(pool?: SimplePool)`: the default transport. `SimplePool` is the class from `nostr-tools/pool`; when omitted it uses `new SimplePool({ enableReconnect: true })`. Pass your own pool to configure it
+- `NwcError`: extends `Error`, `{ code: NwcErrorCode, message: string, walletCode?: string }`. `walletCode` is set only when `code` is `WALLET_ERROR`
 
 NwcClient methods:
-- `connect() → Promise<NwcCapabilities>` — fetches the signed kind-13194 info event, requires `nip44_v2`
-- `payInvoice({ invoice, amount?, metadata? }, options?) → Promise<PayInvoiceResult>`
-- `makeInvoice({ amount, description?, description_hash?, expiry?, metadata? }, options?) → Promise<NwcTransaction>`
-- `lookupInvoice({ payment_hash? | invoice? }, options?) → Promise<NwcTransaction>` — exactly one of the two
-- `getBalance(options?) → Promise<{ balance: number }>`
+- `connect() → Promise<NwcCapabilities>`: fetches the signed kind-13194 info event, requires `nip44_v2`, caches the result. Optional: every request method calls it implicitly when `capabilities` is `undefined`, so call it yourself only to read `capabilities.methods` before spending or to handle discovery errors separately. It is read-only, so any error from it precedes every request. It can be called again to refresh the cache
+- `payInvoice({ invoice, amount?, metadata? }, options?) → Promise<PayInvoiceResult>`: `invoice` is a BOLT-11 string. `amount` is an optional positive integer in milli-satoshis, meant for amountless invoices only. The client forwards it unchecked, does not decode the invoice and cannot tell whether the invoice already has an amount; what a wallet does with both is up to the wallet. Resolves only with a 64-character hex preimage, otherwise throws `INVALID_RESPONSE` (an empty preimage is refused, and that is an ambiguous outcome, not a failed payment)
+- `makeInvoice({ amount, description?, description_hash?, expiry?, metadata? }, options?) → Promise<NwcTransaction>`: `amount` is a positive integer in milli-satoshis. `expiry` is a positive integer in seconds. Give `description` or `description_hash` (32-byte hex), not both
+- `lookupInvoice({ payment_hash? | invoice? }, options?) → Promise<NwcTransaction>`: exactly one of the two, `payment_hash` as 32-byte hex
+- `getBalance(options?) → Promise<GetBalanceResult>`
 - `getInfo(options?) → Promise<GetInfoResult>`
-- `close() → void` — cancels pending requests, zeroises owned key material
-- `capabilities` — getter, `NwcCapabilities | undefined`
-- `walletPubkey`, `clientPubkey`, `relays` — readonly
+- `close() → void`: cancels pending requests with `CLIENT_CLOSED`, zeroises owned key material and clears `capabilities`. Every later call throws `CLIENT_CLOSED`
+- `capabilities`: getter, `NwcCapabilities | undefined`
+- `walletPubkey`, `clientPubkey`, `relays`: readonly
 
-Request options: `{ signal?: AbortSignal, timeoutMs?: number }`
+Request methods validate their parameters first (`INVALID_REQUEST`), then run discovery if needed, then refuse a method the wallet did not list in its info event (`UNSUPPORTED_METHOD`), then publish. `execute` is internal (protected) and not part of the API.
+
+Request options: `{ signal?: AbortSignal, timeoutMs?: number }`. `timeoutMs` must be 100 to 300000.
 
 Functions:
-- `inspectNwcConnection(uri) → NwcConnectionInfo` — `{ walletPubkey, relays, lud16? }`, never returns the secret
+- `inspectNwcConnection(uri) → NwcConnectionInfo`: never returns the secret
 
 Constants:
-- `NWC_INFO_KIND` — 13194
-- `NWC_REQUEST_KIND` — 23194
-- `NWC_RESPONSE_KIND` — 23195
+- `NWC_INFO_KIND`: 13194
+- `NWC_REQUEST_KIND`: 23194
+- `NWC_RESPONSE_KIND`: 23195
 
 Error codes (`NwcErrorCode`): INVALID_CONNECTION, CLIENT_CLOSED, INFO_UNAVAILABLE, UNSUPPORTED_ENCRYPTION, UNSUPPORTED_METHOD, UNSUPPORTED_EXTENSION, INVALID_REQUEST, PUBLISH_FAILED, RESPONSE_TIMEOUT, REQUEST_ABORTED, INVALID_RESPONSE, WALLET_ERROR
 
 Types: GetBalanceResult, GetInfoResult, LookupInvoiceParams, MakeInvoiceParams, NwcCapabilities, NwcClientOptions, NwcConnectionInfo, NwcCoreMethod, NwcErrorCode, NwcEvent, NwcFilter, NwcPublishResult, NwcRequestOptions, NwcSubscription, NwcTransaction, NwcTransport, PayInvoiceParams, PayInvoiceResult
 
+### Type fields
+
+All amounts, balances and fees are integers in milli-satoshis. Every timestamp is an integer in Unix seconds; a transaction timestamp beyond the year 2100 is refused as `INVALID_RESPONSE` because it is almost certainly milliseconds. In `NwcTransaction` and `GetInfoResult` an unset optional field is omitted, whether the wallet sent it as absent, `null` or `""`.
+
+```ts
+interface NwcConnectionInfo { walletPubkey: string; relays: readonly string[]; lud16?: string }
+
+// Returned by connect() and the capabilities getter, copied on each read.
+interface NwcCapabilities {
+  methods: readonly string[]      // from the info event content, e.g. 'pay_invoice'
+  encryptions: readonly string[]  // from the encryption tag; always includes 'nip44_v2'
+  extensions: readonly string[]   // from the extensions tag, often empty
+  eventId: string                 // id of the signed kind-13194 info event
+  createdAt: number               // that event's created_at, Unix seconds
+}
+
+interface PayInvoiceResult {
+  preimage: string    // 64 lowercase hex characters, never empty
+  fees_paid?: number  // milli-satoshis
+}
+
+interface GetBalanceResult { balance: number }  // milli-satoshis
+
+// Returned by getInfo(). The wallet's own report, not this client's capability list.
+interface GetInfoResult {
+  methods: string[]
+  extensions?: string[]
+  alias?: string
+  color?: string
+  pubkey?: string       // the wallet's Lightning node id: 66 hex (compressed key) or 64 hex, lowercased
+  network?: string
+  block_height?: number
+  block_hash?: string   // 64 hex, lowercased
+}
+
+// Returned by makeInvoice, lookupInvoice and listTransactions.
+interface NwcTransaction {
+  type?: 'incoming' | 'outgoing'
+  state?: 'pending' | 'settled' | 'accepted' | 'expired' | 'failed'
+  invoice?: string
+  description?: string
+  description_hash?: string  // 64 hex
+  preimage?: string          // 64 hex, absent when the wallet sends none (for example before settlement)
+  payment_hash?: string      // 64 hex
+  amount?: number            // milli-satoshis
+  fees_paid?: number         // milli-satoshis
+  created_at?: number
+  expires_at?: number
+  settled_at?: number
+  metadata?: Record<string, unknown>
+}
+
+interface PayInvoiceParams { invoice: string; amount?: number /* msat */; metadata?: Record<string, unknown> }
+interface MakeInvoiceParams { amount: number /* msat */; description?: string; description_hash?: string; expiry?: number /* seconds */; metadata?: Record<string, unknown> }
+interface LookupInvoiceParams { payment_hash?: string; invoice?: string }
+interface NwcClientOptions { transport?: NwcTransport; requestTimeoutMs?: number; infoTimeoutMs?: number; now?: () => number }
+interface NwcRequestOptions { signal?: AbortSignal; timeoutMs?: number }
+```
+
+### Injecting a transport
+
+`NwcTransport` is what `NwcClientOptions.transport` accepts. The default is `NostrRelayTransport`. Implement it for tests or a runtime without a global `WebSocket`. The client verifies every event itself, so a transport only moves events and must not be relied on to authenticate them.
+
+```ts
+interface NwcEvent { id: string; pubkey: string; created_at: number; kind: number; tags: string[][]; content: string; sig: string }
+interface NwcFilter { ids?: string[]; kinds?: number[]; authors?: string[]; limit?: number; [tag: `#${string}`]: string[] | undefined }
+interface NwcSubscription { close(reason?: string): void }
+interface NwcPublishResult { relay: string; accepted: boolean }
+
+interface NwcTransport {
+  query(relays: readonly string[], filter: NwcFilter, timeoutMs: number): Promise<NwcEvent[]>
+  subscribe(
+    relays: readonly string[],
+    filter: NwcFilter,
+    handlers: { onevent(event: NwcEvent): void; onclose?(): void },
+    signal?: AbortSignal,
+  ): NwcSubscription
+  publish(relays: readonly string[], event: NwcEvent, timeoutMs: number, signal?: AbortSignal): Promise<NwcPublishResult[]>
+  close(relays: readonly string[]): void
+}
+```
+
 ### @forgesworn/nwc-kit/extensions/05
 
 Draft NWC extension 05, transaction history. Isolated so the core export cannot depend on a draft.
 
-- `new NwcTransactionHistoryClient(connectionUri, options?)` — extends `NwcClient`
-- `listTransactions({ from?, until?, limit?, offset?, unpaid?, type? }, options?) → Promise<{ transactions: NwcTransaction[] }>`
+- `new NwcTransactionHistoryClient(connectionUri, options?)`: extends `NwcClient`, same options, so every core method is available too
+- `listTransactions(params?: ListTransactionsParams, options?) → Promise<{ transactions: NwcTransaction[] }>`
 
-An explicit `limit` is always sent, defaulting to 20 and capped at 20, because the extension advises clients to page by at most 20 and wallets otherwise apply a larger default of their own.
+Exports: `NwcTransactionHistoryClient` and the type `ListTransactionsParams`. `NwcTransaction` comes from the main entry.
+
+```ts
+interface ListTransactionsParams {
+  from?: number      // Unix seconds, integer >= 0
+  until?: number     // Unix seconds, integer >= 0; from must not be after until
+  limit?: number     // integer 1 to 20, default 20
+  offset?: number    // integer >= 0
+  unpaid?: boolean   // forwarded to the wallet unchanged
+  type?: 'incoming' | 'outgoing'
+}
+```
+
+Every invalid parameter throws `INVALID_REQUEST` before anything is sent. A `limit` above 20 is rejected, not clamped. An explicit `limit` is always sent, defaulting to 20, because the extension advises clients to page by at most 20 and wallets otherwise apply a larger default of their own. A response with more transactions than `limit` throws `INVALID_RESPONSE`. The wallet must advertise extension `05` or list `list_transactions` as a method, otherwise the call throws `UNSUPPORTED_EXTENSION`. The method must also be listed, otherwise `UNSUPPORTED_METHOD`.
 
 ## Usage
 
 ```ts
-import { NwcClient } from '@forgesworn/nwc-kit'
+import { NwcClient, NwcError } from '@forgesworn/nwc-kit'
 import { tryDecodeBolt11, verifyPreimage } from 'farrier-kit'
 
+declare function loadNwcUriFromPrivateStorage(): Promise<string>
+
+// Raised before the request is published: nothing reached the wallet.
+const NOT_SENT = new Set([
+  'INVALID_CONNECTION', 'INVALID_REQUEST', 'UNSUPPORTED_METHOD',
+  'UNSUPPORTED_ENCRYPTION', 'UNSUPPORTED_EXTENSION', 'INFO_UNAVAILABLE',
+])
+// A signed, explicit refusal by the wallet.
+const REFUSED = new Set([
+  'PAYMENT_FAILED', 'INSUFFICIENT_BALANCE', 'QUOTA_EXCEEDED',
+  'RATE_LIMITED', 'RESTRICTED', 'UNAUTHORIZED', 'NOT_IMPLEMENTED',
+])
+
+function classify(error: NwcError): 'not-sent' | 'refused' | 'ambiguous' {
+  if (NOT_SENT.has(error.code)) return 'not-sent'
+  if (error.code === 'WALLET_ERROR' && REFUSED.has(error.walletCode ?? '')) return 'refused'
+  // Timeout, abort, publish failure, close, INVALID_RESPONSE, and WALLET_ERROR
+  // with INTERNAL, OTHER or any other code: the payment may have happened.
+  return 'ambiguous'
+}
+
+// Retrieve the URI from app-owned private storage. Never hard-code or log it.
+const connectionUri = await loadNwcUriFromPrivateStorage()
 const client = new NwcClient(connectionUri)
+const invoice = 'lnbc...'
+let payRequested = false
+
 try {
   const capabilities = await client.connect()
   if (!capabilities.methods.includes('pay_invoice')) throw new Error('cannot pay')
 
   const decoded = tryDecodeBolt11(invoice)
-  if (!decoded || decoded.amountMsats === null) throw new Error('bad invoice')
+  if (!decoded || decoded.amountMsats === null) throw new Error('bad or amountless invoice')
 
+  payRequested = true
   const result = await client.payInvoice({ invoice })
   if (!verifyPreimage(result.preimage, decoded.paymentHashHex)) {
+    // The wallet claimed success, so this is not evidence of non-payment.
     throw new Error('wallet response does not settle this invoice')
   }
+} catch (error) {
+  if (!(error instanceof NwcError)) throw error
+  const outcome = payRequested ? classify(error) : 'not-sent'
+  console.error(`payment ${outcome}: ${error.code} ${error.walletCode ?? ''}`)
+  // 'ambiguous': reconcile with the wallet before any retry. A blind retry can pay twice.
 } finally {
   client.close()
 }
 ```
+
+The amountless check above is this example's own policy, not a library rule: `payInvoice` accepts an amountless invoice if you pass `amount` in milli-satoshis.
 
 ## Security Model
 
@@ -93,7 +227,7 @@ try {
 - `INVALID_RESPONSE` on a payment looks like a refusal and is not one. It means the wallet answered claiming a result that could not be trusted (bad preimage, wrong `result_type`, undecryptable payload). A real bridge returned an empty preimage as a *successful* result when its node could not route the payment. Rejecting that response is a statement about the evidence, not about the money.
 - `WALLET_ERROR` carries the wallet's own code in `walletCode`. Only an explicit refusal is definite: `PAYMENT_FAILED`, `INSUFFICIENT_BALANCE`, `QUOTA_EXCEEDED`, `RATE_LIMITED`, `RESTRICTED`, `UNAUTHORIZED`, `NOT_IMPLEMENTED`. `INTERNAL`, `OTHER` and any unrecognised or missing code (reported as `OTHER`) are ambiguous: reconcile before retrying.
 - Apart from an explicit refusal, only failures raised **before** publication prove nothing was attempted: `INVALID_CONNECTION`, `INVALID_REQUEST`, `UNSUPPORTED_METHOD`, `UNSUPPORTED_ENCRYPTION`, `UNSUPPORTED_EXTENSION`, `INFO_UNAVAILABLE`.
-- Passing tests are not evidence that money settled. Verify the invoice before paying and verify the returned preimage against the invoice payment hash afterwards — `farrier-kit` does both.
+- Passing tests are not evidence that money settled. Verify the invoice before paying and verify the returned preimage against the invoice payment hash afterwards: `farrier-kit` does both.
 
 ## Not In Scope
 
