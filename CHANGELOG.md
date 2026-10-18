@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Documented
+
+- The README and `llms.txt` examples now catch `NwcError` and map `code` and
+  `walletCode` to not-sent, refused and ambiguous outcomes, define every
+  variable they use, and name `farrier-kit` in the install line.
+- `llms.txt` lists the fields of `NwcCapabilities`, `PayInvoiceResult`,
+  `NwcTransaction`, `GetInfoResult` and `GetBalanceResult`, the units of
+  `amount` and what `payInvoice`'s optional `amount` is for, the
+  `NwcTransport` interface, the `pool` argument of `NostrRelayTransport` and
+  the extension 05 parameters.
+- `listTransactions` rejects a `limit` above 20 with `INVALID_REQUEST`; the
+  docs previously said it was capped. The README and `llms.txt` now say so.
+- `connect()` is optional: request methods call it when no capabilities are
+  cached. Documented, with the effect of `close()`.
+- `AGENTS.md` classes `INVALID_RESPONSE` and ambiguous `WALLET_ERROR` codes
+  with the other post-publication failures.
+- The README names the type-only `core` and `filter` `nostr-tools` subpaths and
+  no longer names the internal `execute` method.
+- `recipes/` is now in the published package, and the README links
+  `RELEASING.md` by its repository URL because it is not published.
+
 ## 0.1.8 (2026-09-23)
 
 ### Fixed

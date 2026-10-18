@@ -28,6 +28,7 @@
     "LICENSE",
     "CHANGELOG.md",
     "README.md",
+    "recipes",
     "SECURITY.md",
     "THREAT-MODEL.md",
     "llms.txt"

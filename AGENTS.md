@@ -65,9 +65,16 @@ to the active request before anything is decrypted or returned. A valid wallet
 event that does not reference the live request is a possible relay replay and
 must be ignored rather than allowed to fail the request.
 
-**Local failure is not proof of non-payment.** Timeout, abort, close and publish
-failure are all ambiguous once publication has begun. Never phrase them, in code
-or docs, as though the payment did not happen.
+**Failure after publication is not proof of non-payment.** Once a `pay_invoice`
+request has been published, timeout, abort, close, publish failure and
+`INVALID_RESPONSE` are all ambiguous. So is `WALLET_ERROR` with a `walletCode` of
+`INTERNAL`, `OTHER`, any unrecognised code, or none (reported as `OTHER`). Only an
+explicit wallet refusal (`PAYMENT_FAILED`, `INSUFFICIENT_BALANCE`,
+`QUOTA_EXCEEDED`, `RATE_LIMITED`, `RESTRICTED`, `UNAUTHORIZED`,
+`NOT_IMPLEMENTED`) or a failure raised before publication (`INVALID_CONNECTION`,
+`INVALID_REQUEST`, `UNSUPPORTED_METHOD`, `UNSUPPORTED_ENCRYPTION`,
+`UNSUPPORTED_EXTENSION`, `INFO_UNAVAILABLE`) is definite. Never phrase an
+ambiguous outcome, in code or docs, as though the payment did not happen.
 
 **Test against real wallets, not just the NIP text.** Wallets diverge from the
 spec's prose. Two divergences are load-bearing here and have regression tests:
