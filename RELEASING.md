@@ -5,40 +5,27 @@ secret scanning, export verification, runtime audit, pinned-action verification,
 the locked protocol-vector test and two-runner reproducibility enforcement.
 The reusable workflow itself is pinned to an audited commit, not a moving tag.
 
-## First publish
+## Trusted publisher
 
-A trusted publisher cannot be configured for a package that does not yet exist:
-npm's package settings page is the only place to set one, and there is no
-settings page until something has been published. See
-[npm/cli#8544](https://github.com/npm/cli/issues/8544). The first version
-therefore goes up by hand, exactly as anvil documents, and every release after
-it goes through OIDC.
+Every release is published by the release workflow over OIDC; there is no
+manual publish step and no npm token. The npm trusted publisher for
+`@forgesworn/nwc-kit` is:
 
-No npm token is involved at any point. Use an interactive session for the one
-manual publish and OIDC for everything else.
+- repository `forgesworn/nwc-kit`
+- workflow `release.yml`
+- environment `npm-publish` (anvil's default publish environment)
 
-With the public repository in place and `main` green:
+If a release fails with `E404` on publish, the trusted publisher is missing or
+no longer matches these three values.
 
-1. `npm login` and confirm with `npm whoami`.
-2. `npm run check` locally. This is the same sequence CI runs.
-3. `npm publish --access public --no-provenance`.
+`publishConfig.provenance` must stay `true`: anvil refuses to publish without
+it.
 
-   `--no-provenance` is required. `publishConfig.provenance` is `true` and must
-   stay `true`, because anvil refuses to publish without it, but provenance can
-   only be attested from a supported CI runner. A workstation publish that tries
-   to attest fails.
-4. Confirm the published tarball, then tag that commit as `v0.1.0` and push the
-   tag. Do not create a GitHub Release for it; that would ask the release
-   workflow to publish the same version a second time.
-5. On npmjs.com, configure the trusted publisher for the now-existing package:
-   repository `forgesworn/nwc-kit`, workflow `release.yml`, environment
-   `npm-publish`. Create that environment in GitHub if you want a branch or
-   reviewer gate on it.
-6. Verify one OIDC patch release end to end, then require 2FA and disallow
-   token-based publishing for the package.
-
-`0.1.0` is the only version that will lack a provenance attestation. That is the
-cost of npm's bootstrap gap, and it is at its cheapest on a first `0.x` release.
+`0.1.0` has no provenance attestation. npm cannot attach a trusted publisher to
+a package that does not exist yet
+([npm/cli#8544](https://github.com/npm/cli/issues/8544)), so that one version
+was published before OIDC was configured. Every version from `0.1.1` on carries
+provenance.
 
 ## The site
 
