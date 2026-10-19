@@ -1,6 +1,6 @@
 {
   "name": "@forgesworn/nwc-kit",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Small, security-focused Nostr Wallet Connect client for TypeScript",
   "author": "ForgeSworn",
   "license": "MIT",
